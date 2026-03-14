@@ -130,6 +130,120 @@ export function hasVideoStream(filePath: string): Promise<boolean> {
   });
 }
 
+// ─── extractAudio ────────────────────────────────────────────────────────────
+
+/**
+ * Extract the audio track from a media file and save it as MP3.
+ *
+ * Uses `-vn` to drop the video stream and encodes audio with libmp3lame at
+ * variable-bitrate quality 2 (~190 kbps).  The output path must already have
+ * an `.mp3` extension — the caller is responsible for naming it.
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function extractAudio(
+  inputPath: string,
+  outputAudioPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-vn",                  // drop all video streams
+      "-acodec", "libmp3lame",
+      "-q:a", "2",            // VBR quality 2 ≈ 190 kbps
+      "-y",                   // overwrite output without prompting
+      outputAudioPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg extractAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
+// ─── stripAudio ──────────────────────────────────────────────────────────────
+
+/**
+ * Remove all audio streams from a media file while keeping the video intact.
+ *
+ * Uses `-an` to drop audio and `-vcodec copy` to avoid re-encoding the video,
+ * making the operation fast and lossless.  The output extension should match
+ * the input container (e.g., mp4 → mp4) so the muxer stays compatible.
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function stripAudio(
+  inputPath: string,
+  outputVideoPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-an",           // drop all audio streams
+      "-vcodec", "copy",  // copy video bitstream without re-encoding
+      "-y",
+      outputVideoPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg stripAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
+// ─── mergeAudioVideo ─────────────────────────────────────────────────────────
+
+/**
+ * Merge a new audio track into an existing video file.
+ *
+ * - The video stream is copied bitstream-losslessly (no re-encoding).
+ * - The audio is re-encoded to AAC for maximum container compatibility
+ *   (MP4, MOV, MKV all accept AAC without issues).
+ * - `-shortest` ensures the output duration is capped to the shorter of the
+ *   two streams, preventing silent tail if audio is slightly longer than video.
+ * - The original audio track in the video is discarded (`-map 0:v:0`).
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function mergeAudioVideo(
+  videoPath: string,
+  audioPath: string,
+  outputPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", videoPath,
+      "-i", audioPath,
+      "-c:v", "copy",    // copy video bitstream without re-encoding
+      "-c:a", "aac",     // re-encode audio to AAC for container compatibility
+      "-map", "0:v:0",   // take video stream from first input
+      "-map", "1:a:0",   // take audio stream from second input
+      "-shortest",       // cap duration to the shorter stream
+      "-y",
+      outputPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg mergeAudioVideo failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
 // ─── detectSilences ──────────────────────────────────────────────────────────
 
 export interface SilenceSegment {

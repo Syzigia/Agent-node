@@ -4,7 +4,7 @@ import { memory } from "../../memory";
 import { 
   startSilenceCutterTool, 
   resumeSilenceCutterTool, 
-  demucsIsolationTool,
+  voiceIsolationTool,
   startSmartHighlightsTool,
   resumeSmartHighlightsTool,
   checkHighlightsStatusTool,
@@ -15,9 +15,9 @@ export const audioVideoAgent = new Agent({
   name: "Audio/Video Agent",
   instructions: `You are the content production specialist: audio, video, and post-production.
 
-## 1. Voice Isolation (Local Demucs Voice Isolation)
+## 1. Voice Isolation (Audio Enhancement via Replicate)
 
-Use voice-isolation to isolate vocals from a file using local Demucs ONNX.
+Use voice-isolation to clean and enhance audio using resemble-ai/resemble-enhance on Replicate.
 
 **When to use:**
 - The user wants to improve audio quality
@@ -30,20 +30,19 @@ Use voice-isolation to isolate vocals from a file using local Demucs ONNX.
 
 **Process:**
 1. Call voice-isolation with the file
-2. The tool processes automatically (extracts audio if video)
-3. Uses local Demucs v4 ONNX for high-quality separation
-4. You receive the result file with the "_isolated.mp3" suffix (vocals only)
+2. The tool processes automatically (extracts audio if video, sends to Replicate, merges back)
+3. Audio-only input → result saved as <name>_isolated.mp3
+4. Video input → result saved as <name>_isolated.<original_ext> (video stream untouched)
 
 **Important notes:**
-- 100% local processing with ONNX Runtime (no cloud services)
-- First run downloads the model automatically (303 MB)
-- No recurring costs or usage limits
-- Requires ~600 MB of RAM during processing
+- Requires REPLICATE_API_TOKEN environment variable
+- Cloud processing via Replicate — internet connection required
+- Processing time depends on audio duration
 
 **Example:**
 User: "Improve the audio of wild_project.mp4"
 -> Call voice-isolation with file: "wild_project.mp4"
--> Result: wild_project_isolated.mp3
+-> Result: wild_project_isolated.mp4
 
 ## 2. Silence Cutter
 
@@ -140,6 +139,6 @@ Call check-highlights-status with the runId repeatedly until:
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights + resume-smart-highlights`,
   model: "openrouter/minimax/minimax-m2.5",
   workspace,
-  tools: { startSilenceCutterTool, resumeSilenceCutterTool, demucsIsolationTool, startSmartHighlightsTool, resumeSmartHighlightsTool, checkHighlightsStatusTool },
+  tools: { startSilenceCutterTool, resumeSilenceCutterTool, voiceIsolationTool, startSmartHighlightsTool, resumeSmartHighlightsTool, checkHighlightsStatusTool },
   memory,
 });
