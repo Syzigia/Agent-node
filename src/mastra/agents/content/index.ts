@@ -138,7 +138,7 @@ Call check-highlights-status with the runId repeatedly until:
 - If the user wants to IMPROVE audio (remove noise) -> voice-isolation
 - If the user wants to CUT silences -> start-silence-cutter + resume-silence-cutter
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights + resume-smart-highlights`,
-  model: "openai/gpt-4o-mini",
+  model: "openrouter/minimax/minimax-m2.5",
   workspace,
   tools: { startSilenceCutterTool, resumeSilenceCutterTool, demucsIsolationTool, startSmartHighlightsTool, resumeSmartHighlightsTool, checkHighlightsStatusTool },
   memory,

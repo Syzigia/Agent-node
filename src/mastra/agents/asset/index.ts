@@ -25,7 +25,7 @@ When the user asks to convert:
 - "all images" → list first, then pass all to the array
 - "all PNGs" → list, filter .png files, pass to the array
 - a specific file → pass it directly in the array`,
-  model: "openai/gpt-4o-mini",
+  model: "openrouter/minimax/minimax-m2.5",
   workspace,
   tools: { convertToWebpTool },
   memory,

@@ -36,7 +36,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 3. **runId**: The content-agent returns a runId when starting workflows.
    When the user wants to continue/resume a process, pass the runId to the content-agent.`,
-  model: "openai/gpt-4o",
+  model: "openrouter/minimax/minimax-m2.5",
   agents: { assetAgent, contentAgent },
   memory,
 });
