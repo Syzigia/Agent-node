@@ -29,20 +29,20 @@ Use voice-isolation to clean and enhance audio using resemble-ai/resemble-enhanc
 - Audio: mp3, wav, m4a, ogg, flac
 
 **Process:**
-1. Call voice-isolation with the file
-2. The tool processes automatically (extracts audio if video, sends to Replicate, merges back)
+1. Call voice-isolation with an array of files
+2. Each file is processed sequentially — a failure on one does not stop the rest
 3. Audio-only input → result saved as <name>_isolated.mp3
 4. Video input → result saved as <name>_isolated.<original_ext> (video stream untouched)
 
 **Important notes:**
-- Requires REPLICATE_API_TOKEN environment variable
+- Requires REPLICATE_API_KEY environment variable
 - Cloud processing via Replicate — internet connection required
 - Processing time depends on audio duration
 
 **Example:**
-User: "Improve the audio of wild_project.mp4"
--> Call voice-isolation with file: "wild_project.mp4"
--> Result: wild_project_isolated.mp4
+User: "Improve the audio of wild_project.mp4 and podcast.m4a"
+-> Call voice-isolation with files: ["wild_project.mp4", "podcast.m4a"]
+-> Results: wild_project_isolated.mp4, podcast_isolated.mp3
 
 ## 2. Silence Cutter
 

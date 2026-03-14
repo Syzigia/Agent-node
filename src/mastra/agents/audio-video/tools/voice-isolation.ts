@@ -8,10 +8,19 @@ import { readFile } from "fs/promises";
 import Replicate from "replicate";
 import { WORKSPACE_PATH, sanitizePath } from "../../../workspace";
 import {
-  hasVideoStream,
   extractAudio,
   mergeAudioVideo,
 } from "../../../utils/ffmpeg";
+
+/**
+ * Extensions that are treated as video containers.
+ * Audio-only formats (including .mp3 and .m4a, which may carry embedded cover
+ * art that would fool hasVideoStream()) are intentionally excluded so they
+ * always go through the audio-only code path.
+ */
+const VIDEO_EXTENSIONS = new Set([
+  ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv", ".ts",
+]);
 
 /**
  * Replicate model version for resemble-enhance.
@@ -21,8 +30,8 @@ const REPLICATE_MODEL =
   "resemble-ai/resemble-enhance:93266a7e7f5805fb79bcf213b1a4e0ef2e45aff3c06eefd96c59e850c87fd6a2" as const;
 
 /**
- * Download the processed audio from Replicate's output URL and return it as
- * a Buffer.  The URL is temporary (valid for a few hours after the run).
+ * Download the processed audio from a URL and return it as a Buffer.
+ * Used as a fallback when Replicate returns a plain URL string.
  */
 async function downloadAudio(url: string): Promise<Buffer> {
   const response = await fetch(url);
@@ -36,8 +45,30 @@ async function downloadAudio(url: string): Promise<Buffer> {
 }
 
 /**
+ * Read all chunks from a WHATWG ReadableStream<Uint8Array> into a Buffer.
+ */
+async function readStreamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+  const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return Buffer.from(result);
+}
+
+/**
  * Build a base64 data URI from a local file path.
  * Uses `audio/mpeg` for .mp3 and `audio/wav` for everything else.
+ * By the time this is called the file is always an .mp3 temp file.
  */
 async function fileToDataURI(filePath: string): Promise<string> {
   const buffer = await readFile(filePath);
@@ -48,9 +79,14 @@ async function fileToDataURI(filePath: string): Promise<string> {
 
 /**
  * Send an audio file to Replicate's resemble-enhance model and return the
- * URL of the cleaned output.
+ * cleaned audio as a Buffer.
+ *
+ * The Replicate SDK may return either:
+ *  - A plain URL string (older SDK / some model versions)
+ *  - A FileOutput object that implements ReadableStream<Uint8Array>
+ * Both cases are handled here so the caller always receives a Buffer.
  */
-async function enhanceAudio(audioPath: string): Promise<string> {
+async function enhanceAudio(audioPath: string): Promise<Buffer> {
   // The project uses REPLICATE_API_KEY; the SDK default is REPLICATE_API_TOKEN.
   // Pass the token explicitly so either variable name works.
   const auth = process.env.REPLICATE_API_KEY ?? process.env.REPLICATE_API_TOKEN;
@@ -75,182 +111,228 @@ async function enhanceAudio(audioPath: string): Promise<string> {
     },
   });
 
-  // The model returns an array of URIs: string[]
-  // Take the first (and typically only) entry.
-  const outputArray = output as string[];
-  const url = Array.isArray(outputArray) ? outputArray[0] : undefined;
+  // The model returns an array — grab the first element.
+  const outputArray = output as unknown[];
+  const firstOutput = Array.isArray(outputArray) ? outputArray[0] : undefined;
 
-  if (!url) {
+  if (!firstOutput) {
     throw new Error(
       `Unexpected output from Replicate model: ${JSON.stringify(output)}`,
     );
   }
 
-  console.log("[voiceIsolation] Replicate output URL:", url);
-  return url;
+  // Case 1: FileOutput / ReadableStream returned by the current Replicate SDK
+  if (
+    typeof firstOutput === "object" &&
+    firstOutput !== null &&
+    typeof (firstOutput as any).getReader === "function"
+  ) {
+    console.log("[voiceIsolation] Replicate returned a ReadableStream — reading directly...");
+    return readStreamToBuffer(firstOutput as ReadableStream<Uint8Array>);
+  }
+
+  // Case 2: Plain URL string (fallback for older SDK versions)
+  if (typeof firstOutput === "string") {
+    console.log("[voiceIsolation] Replicate output URL:", firstOutput);
+    return downloadAudio(firstOutput);
+  }
+
+  throw new Error(
+    `Unrecognised output type from Replicate model: ${typeof firstOutput} — ${JSON.stringify(firstOutput)}`,
+  );
+}
+
+/**
+ * Process a single file: convert/extract to MP3 if needed, send to Replicate,
+ * download the result, and write the final output.
+ *
+ * Temp files are written to os.tmpdir() and always cleaned up on
+ * success or failure so the workspace stays untouched.
+ *
+ * @param file    Sanitized relative path within the workspace.
+ * @param index   Position in the batch — used to avoid temp-file name
+ *                collisions when two files share the same basename.
+ */
+async function processFile(
+  file: string,
+  index: number,
+): Promise<{ output: string; originalSize: number; outputSize: number }> {
+  const inputPath = path.join(WORKSPACE_PATH, file);
+  const originalSize = fs.statSync(inputPath).size;
+  const ext = path.extname(file).toLowerCase();
+  const baseName = path.basename(file, ext);
+
+  // Unique prefix per file prevents collisions between files sharing a baseName
+  const tempPrefix = `${baseName}_${index}`;
+  const tempDir = os.tmpdir();
+  const tempAudioPath = path.join(tempDir, `${tempPrefix}_isolation_audio.mp3`);
+  const tempCleanAudioPath = path.join(tempDir, `${tempPrefix}_clean_audio.mp3`);
+
+  const isVideo = VIDEO_EXTENSIONS.has(ext);
+  console.log(`[voiceIsolation] [${index + 1}] ${file} — isVideo: ${isVideo}`);
+
+  const outputRel = isVideo
+    ? `${baseName}_isolated${ext}`
+    : `${baseName}_isolated.mp3`;
+  const outputPath = path.join(WORKSPACE_PATH, outputRel);
+
+  try {
+    // ── 1. Ensure Replicate always receives an MP3 ───────────────────────────
+    //   • Video          → extract audio track to temp MP3
+    //   • Any audio file → always convert to temp MP3
+    //     (handles malformed codecs, embedded cover art in mp3/m4a, etc.)
+    let audioSourcePath: string;
+
+    if (isVideo) {
+      console.log(`[voiceIsolation] [${index + 1}] Extracting audio from video...`);
+      await extractAudio(inputPath, tempAudioPath);
+      audioSourcePath = tempAudioPath;
+    } else {
+      console.log(`[voiceIsolation] [${index + 1}] Converting audio → MP3...`);
+      await extractAudio(inputPath, tempAudioPath);
+      audioSourcePath = tempAudioPath;
+    }
+
+    // ── 2. Enhance via Replicate ─────────────────────────────────────────────
+    console.log(`[voiceIsolation] [${index + 1}] Sending to Replicate...`);
+    const cleanAudioBuffer = await enhanceAudio(audioSourcePath);
+
+    // ── 3. Write final output ────────────────────────────────────────────────
+    if (isVideo) {
+      console.log(`[voiceIsolation] [${index + 1}] Merging clean audio back into video...`);
+      fs.writeFileSync(tempCleanAudioPath, cleanAudioBuffer);
+      await mergeAudioVideo(inputPath, tempCleanAudioPath, outputPath);
+    } else {
+      fs.writeFileSync(outputPath, cleanAudioBuffer);
+    }
+
+    const outputSize = fs.statSync(outputPath).size;
+    console.log(`[voiceIsolation] [${index + 1}] Done → ${outputRel} (${outputSize} bytes)`);
+
+    return { output: outputRel, originalSize, outputSize };
+
+  } finally {
+    // Always clean up temp files regardless of success or failure
+    for (const p of [tempAudioPath, tempCleanAudioPath]) {
+      if (fs.existsSync(p)) {
+        try { fs.unlinkSync(p); } catch { /* ignore */ }
+      }
+    }
+  }
 }
 
 /**
  * Tool: Voice Isolation / Audio Enhancement via Replicate
  *
- * Cleans and enhances the audio of a file using resemble-ai/resemble-enhance
- * (noise suppression + audio enhancement) running on Replicate.
+ * Accepts one or more audio/video files and cleans their audio using
+ * resemble-ai/resemble-enhance (noise suppression + audio enhancement)
+ * running on Replicate.
+ *
+ * Files are processed sequentially. Failures on individual files do not
+ * stop the rest of the batch.
  *
  * Behaviour by input type:
- *
- *  • Audio only (mp3, wav, m4a, ogg, flac, …)
- *    The file is uploaded directly to Replicate.
- *    Output: <name>_isolated.mp3
- *
+ *  • Audio only (mp3, wav, m4a, ogg, flac, …)  → <name>_isolated.mp3
  *  • Video (mp4, mov, avi, mkv, webm, …)
- *    1. Audio is extracted from the video.
- *    2. The extracted audio is sent to Replicate.
- *    3. The cleaned audio is merged back into the original video
- *       (video stream copied losslessly, audio re-encoded to AAC).
- *    Output: <name>_isolated.<original_ext>
+ *      audio extracted → cleaned → merged back (video stream never re-encoded)
+ *      → <name>_isolated.<original_ext>
  *
- * Requires the REPLICATE_API_TOKEN environment variable to be set.
+ * Requires the REPLICATE_API_KEY environment variable to be set.
  */
 export const voiceIsolationTool = createTool({
   id: "voice-isolation",
   description: `Cleans and enhances audio using resemble-ai/resemble-enhance on Replicate (cloud processing).
 
-Applies noise suppression and audio enhancement to:
-- Pure audio files → saved as <name>_isolated.mp3
-- Video files → audio is extracted, cleaned, then merged back into the video
-  (video stream is never re-encoded) → saved as <name>_isolated.<ext>
+Accepts one or more audio or video files. Files are processed sequentially;
+a failure on one file does not stop the rest of the batch.
 
-Supported audio: mp3, wav, m4a, ogg, flac
-Supported video: mp4, mov, avi, mkv, webm, flv
+Per-file behaviour:
+- Pure audio (mp3, wav, m4a, ogg, flac) → <name>_isolated.mp3
+- Video (mp4, mov, avi, mkv, webm, flv) → audio extracted, cleaned, merged back
+  (video stream copied losslessly) → <name>_isolated.<ext>
 
-Requires: REPLICATE_API_TOKEN environment variable.
+Requires: REPLICATE_API_KEY environment variable.
 
-Example: { file: "podcast.mp3" } → podcast_isolated.mp3
-Example: { file: "interview.mp4" } → interview_isolated.mp4`,
+Examples:
+  { files: ["podcast.mp3"] }
+  { files: ["interview.mp4", "voiceover.m4a", "recording.wav"] }`,
   inputSchema: z.object({
-    file: z
-      .string()
+    files: z
+      .array(z.string())
+      .min(1)
       .describe(
-        "Relative path within the workspace to the audio or video file (e.g. 'podcast.mp3', 'clips/interview.mp4')",
+        "Array of relative paths within the workspace to the audio or video files to enhance (e.g. ['podcast.mp3', 'clips/interview.mp4'])",
       ),
   }),
   outputSchema: z.object({
-    success: z.boolean(),
-    output: z.string().optional().describe("Relative workspace path of the output file"),
-    message: z.string(),
-    originalSize: z.number().optional().describe("Original file size in bytes"),
-    outputSize: z.number().optional().describe("Output file size in bytes"),
-    error: z.string().optional(),
+    success: z.boolean().describe("True if at least one file was processed successfully"),
+    processed: z.number().describe("Number of files successfully enhanced"),
+    failed: z.number().describe("Number of files that failed"),
+    results: z.array(
+      z.object({
+        file: z.string().describe("Input file path"),
+        output: z.string().describe("Output file path in the workspace"),
+        originalSize: z.number().describe("Input file size in bytes"),
+        outputSize: z.number().describe("Output file size in bytes"),
+      }),
+    ),
+    errors: z.array(
+      z.object({
+        file: z.string().describe("Input file path that failed"),
+        error: z.string().describe("Error message"),
+      }),
+    ),
   }),
   execute: async (inputData, _context: ToolExecutionContext) => {
-    const file = sanitizePath(inputData.file);
-    const inputPath = path.join(WORKSPACE_PATH, file);
+    const results: Array<{
+      file: string;
+      output: string;
+      originalSize: number;
+      outputSize: number;
+    }> = [];
+    const errors: Array<{ file: string; error: string }> = [];
 
-    console.log("[voiceIsolation] Starting for:", file);
+    console.log(`[voiceIsolation] Starting batch of ${inputData.files.length} file(s)...`);
 
-    // ── 1. Verify the file exists ────────────────────────────────────────────
-    if (!fs.existsSync(inputPath)) {
-      return {
-        success: false,
-        message: `File not found: ${file}`,
-        error: "File does not exist in the workspace",
-      };
+    for (let i = 0; i < inputData.files.length; i++) {
+      const rawFile = inputData.files[i]!;
+      let file: string;
+
+      // ── Sanitize path ──────────────────────────────────────────────────────
+      try {
+        file = sanitizePath(rawFile);
+      } catch (err: any) {
+        errors.push({ file: rawFile, error: err.message });
+        continue;
+      }
+
+      // ── Verify file exists ─────────────────────────────────────────────────
+      const inputPath = path.join(WORKSPACE_PATH, file);
+      if (!fs.existsSync(inputPath)) {
+        errors.push({ file, error: "File not found in workspace" });
+        continue;
+      }
+
+      // ── Process ────────────────────────────────────────────────────────────
+      try {
+        const result = await processFile(file, i);
+        results.push({ file, ...result });
+      } catch (err: any) {
+        console.error(`[voiceIsolation] [${i + 1}] FAILED: ${file} —`, err.message);
+        errors.push({ file, error: err.message });
+      }
     }
 
-    const originalSize = fs.statSync(inputPath).size;
-    const ext = path.extname(file).toLowerCase();
-    const baseName = path.basename(file, ext);
+    console.log(
+      `[voiceIsolation] Batch complete — ${results.length} succeeded, ${errors.length} failed.`,
+    );
 
-    // ── 2. Detect whether the input contains a video stream ──────────────────
-    const isVideo = await hasVideoStream(inputPath);
-    console.log("[voiceIsolation] Is video:", isVideo);
-
-    // Temp files go to the OS temp directory — never visible in the workspace.
-    // The OS cleans them up on reboot; we also delete them explicitly on success/error.
-    const tempDir = os.tmpdir();
-    const tempAudioPath = path.join(tempDir, `${baseName}_temp_isolation_audio.mp3`);
-    const tempCleanAudioPath = path.join(tempDir, `${baseName}_temp_clean_audio.mp3`);
-
-    // Final output path
-    const outputRel = isVideo
-      ? `${baseName}_isolated${ext}`
-      : `${baseName}_isolated.mp3`;
-    const outputPath = path.join(WORKSPACE_PATH, outputRel);
-
-    try {
-      // ── 3a. Ensure the audio fed to Replicate is always an MP3 ──────────────
-      //   • Video          → extract the audio track
-      //   • Audio non-MP3  → convert to MP3 (m4a, wav, ogg, flac, …)
-      //   • Audio MP3      → use directly, no temp file needed
-      let audioSourcePath: string;
-
-      if (isVideo) {
-        console.log("[voiceIsolation] Extracting audio from video...");
-        await extractAudio(inputPath, tempAudioPath);
-        audioSourcePath = tempAudioPath;
-      } else if (ext !== ".mp3") {
-        console.log(`[voiceIsolation] Converting ${ext} → MP3 before upload...`);
-        await extractAudio(inputPath, tempAudioPath);
-        audioSourcePath = tempAudioPath;
-      } else {
-        audioSourcePath = inputPath;
-      }
-      const cleanAudioUrl = await enhanceAudio(audioSourcePath);
-
-      // ── 4. Download the processed audio ───────────────────────────────────
-      console.log("[voiceIsolation] Downloading cleaned audio...");
-      const cleanAudioBuffer = await downloadAudio(cleanAudioUrl);
-
-      if (isVideo) {
-        // ── 5a. Video: save temp clean audio, then merge back into video ─────
-        fs.writeFileSync(tempCleanAudioPath, cleanAudioBuffer);
-
-        console.log("[voiceIsolation] Merging clean audio back into video...");
-        await mergeAudioVideo(inputPath, tempCleanAudioPath, outputPath);
-
-        // Clean up both temp audio files
-        for (const p of [tempAudioPath, tempCleanAudioPath]) {
-          if (fs.existsSync(p)) fs.unlinkSync(p);
-        }
-      } else {
-        // ── 5b. Audio only: write the MP3 buffer directly ────────────────────
-        fs.writeFileSync(outputPath, cleanAudioBuffer);
-
-        // Clean up temp conversion file if one was created (non-MP3 input)
-        if (fs.existsSync(tempAudioPath)) fs.unlinkSync(tempAudioPath);
-      }
-
-      const outputSize = fs.statSync(outputPath).size;
-      console.log("[voiceIsolation] Done. Output:", outputRel, `(${outputSize} bytes)`);
-
-      return {
-        success: true,
-        output: outputRel,
-        message: `Audio enhanced successfully. Output saved as: ${outputRel}`,
-        originalSize,
-        outputSize,
-      };
-    } catch (err: any) {
-      console.error("[voiceIsolation] ERROR:", err.message);
-
-      // Best-effort cleanup of any temp files (all in os.tmpdir())
-      for (const p of [tempAudioPath, tempCleanAudioPath]) {
-        if (fs.existsSync(p)) {
-          try { fs.unlinkSync(p); } catch { /* ignore */ }
-        }
-      }
-
-      // Also remove the partial output from the workspace if it was created
-      if (fs.existsSync(outputPath)) {
-        try { fs.unlinkSync(outputPath); } catch { /* ignore */ }
-      }
-
-      return {
-        success: false,
-        message: `Voice isolation failed: ${err.message}`,
-        error: err.message,
-        originalSize,
-      };
-    }
+    return {
+      success: results.length > 0,
+      processed: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    };
   },
 });
