@@ -3,10 +3,10 @@ import { workspace } from "../../workspace";
 import { memory } from "../../memory";
 import { convertToWebpTool } from "./tools";
 
-export const assetAgent = new Agent({
-  id: "asset-agent",
-  name: "Asset Agent",
-  instructions: `You are the Asset specialist for the workspace. You have two capabilities:
+export const productionAgent = new Agent({
+  id: "production-agent",
+  name: "Production Agent",
+  instructions: `You are the Production specialist for the workspace. You have two capabilities:
 1. Explore files using workspace tools (list_directory, read_file, etc.)
 2. Convert images to WebP using the convert-to-webp tool.
 

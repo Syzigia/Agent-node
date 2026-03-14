@@ -10,9 +10,9 @@ import {
   checkHighlightsStatusTool,
 } from "./tools";
 
-export const contentAgent = new Agent({
-  id: "content-agent",
-  name: "Content Agent",
+export const audioVideoAgent = new Agent({
+  id: "audio-video-agent",
+  name: "Audio/Video Agent",
   instructions: `You are the content production specialist: audio, video, and post-production.
 
 ## 1. Voice Isolation (Local Demucs Voice Isolation)

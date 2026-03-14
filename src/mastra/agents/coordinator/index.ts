@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { memory } from "../../memory";
-import { assetAgent } from "../asset";
-import { contentAgent } from "../content";
+import { productionAgent } from "../production";
+import { audioVideoAgent } from "../audio-video";
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -12,12 +12,12 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 ## When to delegate to each agent:
 
-### asset-agent
+### production-agent
 - Explore workspace files (list, search)
 - Convert images to WebP
 - Any task related to image files
 
-### content-agent
+### audio-video-agent
 - Process audio or video
 - Extract highlights/clips from a video → use smart-highlights
 - Cut silences from podcasts or videos → use silence-cutter
@@ -30,13 +30,13 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    - If the user says "wild_project.mp4", pass "wild_project.mp4" — DO NOT add folders or prefixes.
    - NEVER invent absolute paths like /foo, /tmp, etc.
 
-2. **Human approval**: For content tasks involving cuts or modifications,
-   the content-agent has its own human approval flow (HITL).
+2. **Human approval**: For audio/video tasks involving cuts or modifications,
+   the audio-video-agent has its own human approval flow (HITL).
    Do not force or speed up that process — the human must always review before changes are applied.
 
-3. **runId**: The content-agent returns a runId when starting workflows.
-   When the user wants to continue/resume a process, pass the runId to the content-agent.`,
+3. **runId**: The audio-video-agent returns a runId when starting workflows.
+   When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
   model: "openrouter/minimax/minimax-m2.5",
-  agents: { assetAgent, contentAgent },
+  agents: { productionAgent, audioVideoAgent },
   memory,
 });
