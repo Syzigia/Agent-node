@@ -1,7 +1,8 @@
 import { LocalFilesystem, Workspace } from "@mastra/core/workspace";
 import * as path from "path";
 
-export const WORKSPACE_PATH = "c:\\Users\\jorge\\Code\\workflowtest";
+export const WORKSPACE_PATH =
+  process.env.WORKSPACE_PATH ?? "c:\\Users\\jorge\\Code\\workflowtest";
 
 export const workspace = new Workspace({
   filesystem: new LocalFilesystem({
