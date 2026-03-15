@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { memory } from "../../memory";
 import { productionAgent } from "../production";
 import { audioVideoAgent } from "../audio-video";
+import { gpt5MiniModelId } from "../../models/azure-openai";
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -36,7 +37,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 3. **runId**: The audio-video-agent returns a runId when starting workflows.
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
-  model: "openrouter/minimax/minimax-m2.5",
+  model: gpt5MiniModelId,
   agents: { productionAgent, audioVideoAgent },
   memory,
 });

@@ -1,8 +1,11 @@
 export { startSilenceCutterTool } from "./silence-workflow-tools";
 export { resumeSilenceCutterTool } from "./silence-workflow-tools";
+export { startSubtitleGeneratorTool } from "./subtitle-workflow-tools";
+export { resumeSubtitleGeneratorTool } from "./subtitle-workflow-tools";
+export { checkSubtitleStatusTool } from "./check-subtitle-status";
 
-// Local voice isolation tool with Demucs ONNX
-export { demucsIsolationTool } from "./demucs-isolation";
+// Voice isolation / audio enhancement via Replicate
+export { voiceIsolationTool } from "./voice-isolation";
 
 // Smart Highlights Clipper tools
 export { startSmartHighlightsTool } from "./start-smart-highlights";

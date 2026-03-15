@@ -7,7 +7,11 @@
 
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
+import { rejects } from "assert";
 import { spawn, type ChildProcess } from "child_process";
+import { resolve } from "dns";
+import * as fs from "fs";
+import * as path from "path";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -130,6 +134,173 @@ export function hasVideoStream(filePath: string): Promise<boolean> {
   });
 }
 
+// ─── getVideoDimensions ───────────────────────────────────────────────────────
+
+/**
+ * Get video dimensions (width/height) from the first video stream.
+ */
+export function getVideoDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ffprobeInstaller.path, [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=width,height",
+      "-of", "csv=p=0:s=x",
+      filePath,
+    ]);
+
+    let out = "";
+    let err = "";
+
+    proc.stdout.on("data", (d) => {
+      out += d.toString();
+    });
+    proc.stderr.on("data", (d) => {
+      err += d.toString();
+    });
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`ffprobe getVideoDimensions exited with code ${code}: ${err.slice(-500)}`));
+        return;
+      }
+
+      const match = out.trim().match(/^(\d+)x(\d+)$/);
+      if (!match) {
+        reject(new Error(`Could not parse video dimensions from ffprobe output: "${out.trim()}"`));
+        return;
+      }
+
+      const width = Number(match[1]);
+      const height = Number(match[2]);
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        reject(new Error(`Invalid video dimensions parsed: ${width}x${height}`));
+        return;
+      }
+
+      resolve({ width, height });
+    });
+
+    proc.on("error", (procErr) => {
+      reject(new Error(`ffprobe process error (getVideoDimensions): ${procErr.message}`));
+    });
+  });
+}
+
+// ─── extractAudio ────────────────────────────────────────────────────────────
+
+/**
+ * Extract the audio track from a media file and save it as MP3.
+ *
+ * Uses `-vn` to drop the video stream and encodes audio with libmp3lame at
+ * variable-bitrate quality 2 (~190 kbps).  The output path must already have
+ * an `.mp3` extension — the caller is responsible for naming it.
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function extractAudio(
+  inputPath: string,
+  outputAudioPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-vn",                  // drop all video streams
+      "-acodec", "libmp3lame",
+      "-q:a", "2",            // VBR quality 2 ≈ 190 kbps
+      "-y",                   // overwrite output without prompting
+      outputAudioPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg extractAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
+// ─── stripAudio ──────────────────────────────────────────────────────────────
+
+/**
+ * Remove all audio streams from a media file while keeping the video intact.
+ *
+ * Uses `-an` to drop audio and `-vcodec copy` to avoid re-encoding the video,
+ * making the operation fast and lossless.  The output extension should match
+ * the input container (e.g., mp4 → mp4) so the muxer stays compatible.
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function stripAudio(
+  inputPath: string,
+  outputVideoPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-an",           // drop all audio streams
+      "-vcodec", "copy",  // copy video bitstream without re-encoding
+      "-y",
+      outputVideoPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg stripAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
+// ─── mergeAudioVideo ─────────────────────────────────────────────────────────
+
+/**
+ * Merge a new audio track into an existing video file.
+ *
+ * - The video stream is copied bitstream-losslessly (no re-encoding).
+ * - The audio is re-encoded to AAC for maximum container compatibility
+ *   (MP4, MOV, MKV all accept AAC without issues).
+ * - `-shortest` ensures the output duration is capped to the shorter of the
+ *   two streams, preventing silent tail if audio is slightly longer than video.
+ * - The original audio track in the video is discarded (`-map 0:v:0`).
+ *
+ * Rejects if ffmpeg exits with a non-zero code.
+ */
+export function mergeAudioVideo(
+  videoPath: string,
+  audioPath: string,
+  outputPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", videoPath,
+      "-i", audioPath,
+      "-c:v", "copy",    // copy video bitstream without re-encoding
+      "-c:a", "aac",     // re-encode audio to AAC for container compatibility
+      "-map", "0:v:0",   // take video stream from first input
+      "-map", "1:a:0",   // take audio stream from second input
+      "-shortest",       // cap duration to the shorter stream
+      "-y",
+      outputPath,
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg mergeAudioVideo failed (code ${code}): ${stderr.get().slice(-500)}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  });
+}
+
 // ─── detectSilences ──────────────────────────────────────────────────────────
 
 export interface SilenceSegment {
@@ -201,4 +372,36 @@ export function detectSilences(
 
     proc.on("error", reject);
   });
+}
+
+
+export function splitAudio(inputPath: string, outputDir: string, segmentTimeSeconds: number = 600): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const baseName = path.basename(inputPath, path.extname(inputPath));
+    const outputPattern = path.join(outputDir, `${baseName}_chunk_%03d.mp3`);
+
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-f", "segment",
+      "-segment_time", segmentTimeSeconds.toString(),
+      "-c", "copy",
+      outputPattern
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        const files = fs.readdirSync(outputDir)
+          .filter(f => f.startsWith(`${baseName}_chunk_`) && f.endsWith('.mp3'))
+          .map(f => path.join(outputDir, f))
+          .sort();
+        resolve(files);
+      } else {
+        reject(new Error(`ffmpeg splitAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+      }
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  })
 }
