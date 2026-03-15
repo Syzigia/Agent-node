@@ -9,6 +9,7 @@ import {
   resumeSmartHighlightsTool,
   checkHighlightsStatusTool,
 } from "./tools";
+import { volumeNormalizerTool } from "./tools/volume-normalizer";
 
 export const audioVideoAgent = new Agent({
   id: "audio-video-agent",
@@ -128,17 +129,45 @@ Call check-highlights-status with the runId repeatedly until:
 - ALWAYS use check-highlights-status to poll after each resume call
 - Poll every 15-30 seconds; the workflow can take several minutes for long videos
 
+## 4. Volume Normalizer (Audio Leveling)
+
+Use volume-normalizer to adjust and level out the audio volume of a file using the industry-standard EBU R128 loudnorm filter.
+
+**When to use:**
+- The user complains a video or audio file is "too quiet", "too loud", or the volume is inconsistent.
+- The user specifically asks to "normalize", "level", or "balance" the volume.
+
+**Process:**
+1. Call volume-normalizer with an array of files.
+2. Each file is processed sequentially.
+3. Resulting files are saved with a "_normalized" suffix (e.g., video_normalized.mp4).
+4. For video inputs, the visual stream remains untouched and lossless; only the audio is re-encoded.
+
+**Example:**
+User: "The audio in podcast.mp4 is too quiet, can you fix it?"
+-> Call volume-normalizer with files: ["podcast.mp4"]
+-> Result: podcast_normalized.mp4
+
 ## Path rules
 - ALWAYS use paths relative to the workspace: "wild_project.mp4", "audios/podcast.m4a"
 - NEVER use absolute paths (not /foo/bar, not C:\\something)
 - NEVER invent path prefixes — use the exact name the user provides
 
 ## Tool priority
-- If the user wants to IMPROVE audio (remove noise) -> voice-isolation
+- If the user wants to FIX VOLUME (too quiet/loud, normalize) -> volume-normalizer
+- If the user wants to IMPROVE audio quality (remove noise/echo) -> voice-isolation
 - If the user wants to CUT silences -> start-silence-cutter + resume-silence-cutter
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights + resume-smart-highlights`,
   model: "openrouter/minimax/minimax-m2.5",
   workspace,
-  tools: { startSilenceCutterTool, resumeSilenceCutterTool, voiceIsolationTool, startSmartHighlightsTool, resumeSmartHighlightsTool, checkHighlightsStatusTool },
+  tools: { 
+    startSilenceCutterTool, 
+    resumeSilenceCutterTool, 
+    voiceIsolationTool, 
+    startSmartHighlightsTool, 
+    resumeSmartHighlightsTool, 
+    checkHighlightsStatusTool, 
+    volumeNormalizerTool 
+  },
   memory,
 });
