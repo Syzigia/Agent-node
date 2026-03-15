@@ -13,6 +13,7 @@ import {
   checkHighlightsStatusTool,
 } from "./tools";
 import { volumeNormalizerTool } from "./tools/volume-normalizer";
+import { gpt5NanoModelId } from "../../models/azure-openai";
 
 export const audioVideoAgent = new Agent({
   id: "audio-video-agent",
@@ -223,7 +224,7 @@ User: "Generate subtitles for wild_project.mp4"
 - If the user wants to CUT silences -> start-silence-cutter + resume-silence-cutter
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights + resume-smart-highlights
 - If the user wants to GENERATE SUBTITLES -> start-subtitle-generator`,
-  model: "openrouter/minimax/minimax-m2.5",
+  model: gpt5NanoModelId,
   workspace,
   tools: { 
     startSilenceCutterTool, 

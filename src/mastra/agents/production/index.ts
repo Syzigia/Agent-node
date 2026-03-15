@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { workspace } from "../../workspace";
 import { memory } from "../../memory";
 import { convertToWebpTool } from "./tools";
+import { gpt5NanoModelId } from "../../models/azure-openai";
 
 export const productionAgent = new Agent({
   id: "production-agent",
@@ -25,7 +26,7 @@ When the user asks to convert:
 - "all images" → list first, then pass all to the array
 - "all PNGs" → list, filter .png files, pass to the array
 - a specific file → pass it directly in the array`,
-  model: "openrouter/minimax/minimax-m2.5",
+  model: gpt5NanoModelId,
   workspace,
   tools: { convertToWebpTool },
   memory,
