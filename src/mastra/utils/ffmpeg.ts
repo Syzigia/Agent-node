@@ -7,7 +7,11 @@
 
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
+import { rejects } from "assert";
 import { spawn, type ChildProcess } from "child_process";
+import { resolve } from "dns";
+import * as fs from "fs";
+import * as path from "path";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -127,6 +131,59 @@ export function hasVideoStream(filePath: string): Promise<boolean> {
 
     proc.on("close", () => resolve(out.trim().toLowerCase().includes("video")));
     proc.on("error", () => resolve(false));
+  });
+}
+
+// ─── getVideoDimensions ───────────────────────────────────────────────────────
+
+/**
+ * Get video dimensions (width/height) from the first video stream.
+ */
+export function getVideoDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ffprobeInstaller.path, [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=width,height",
+      "-of", "csv=p=0:s=x",
+      filePath,
+    ]);
+
+    let out = "";
+    let err = "";
+
+    proc.stdout.on("data", (d) => {
+      out += d.toString();
+    });
+    proc.stderr.on("data", (d) => {
+      err += d.toString();
+    });
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`ffprobe getVideoDimensions exited with code ${code}: ${err.slice(-500)}`));
+        return;
+      }
+
+      const match = out.trim().match(/^(\d+)x(\d+)$/);
+      if (!match) {
+        reject(new Error(`Could not parse video dimensions from ffprobe output: "${out.trim()}"`));
+        return;
+      }
+
+      const width = Number(match[1]);
+      const height = Number(match[2]);
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        reject(new Error(`Invalid video dimensions parsed: ${width}x${height}`));
+        return;
+      }
+
+      resolve({ width, height });
+    });
+
+    proc.on("error", (procErr) => {
+      reject(new Error(`ffprobe process error (getVideoDimensions): ${procErr.message}`));
+    });
   });
 }
 
@@ -315,4 +372,36 @@ export function detectSilences(
 
     proc.on("error", reject);
   });
+}
+
+
+export function splitAudio(inputPath: string, outputDir: string, segmentTimeSeconds: number = 600): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const baseName = path.basename(inputPath, path.extname(inputPath));
+    const outputPattern = path.join(outputDir, `${baseName}_chunk_%03d.mp3`);
+
+    const { proc } = spawnWithTimeout(ffmpegInstaller.path, [
+      "-i", inputPath,
+      "-f", "segment",
+      "-segment_time", segmentTimeSeconds.toString(),
+      "-c", "copy",
+      outputPattern
+    ]);
+
+    const stderr = cappedStderr(proc);
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        const files = fs.readdirSync(outputDir)
+          .filter(f => f.startsWith(`${baseName}_chunk_`) && f.endsWith('.mp3'))
+          .map(f => path.join(outputDir, f))
+          .sort();
+        resolve(files);
+      } else {
+        reject(new Error(`ffmpeg splitAudio failed (code ${code}): ${stderr.get().slice(-500)}`));
+      }
+    });
+
+    proc.on("error", (err) => reject(new Error(`ffmpeg process error: ${err.message}`)));
+  })
 }
