@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { workspace } from "../../workspace";
-import { memory } from "../../memory";
+import { agentMemory } from "../../memory";
 import { 
   startSilenceCutterTool, 
   resumeSilenceCutterTool, 
@@ -238,5 +238,5 @@ User: "Generate subtitles for wild_project.mp4"
     checkHighlightsStatusTool, 
     volumeNormalizerTool 
   },
-  memory,
+  memory: agentMemory,
 });
