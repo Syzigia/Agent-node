@@ -29,6 +29,7 @@
     "@mastra/core": "^1.13.2",
     "@mastra/libsql": "^1.7.0",
     "@mastra/memory": "^1.8.2",
+    "@mastra/observability": "^1.5.0",
     "ai": "^6.0.116",
     "axios": "^1.13.6",
     "fluent-ffmpeg": "^2.1.3",

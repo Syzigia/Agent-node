@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
 import { workspace } from "../../workspace";
 import { agentMemory } from "../../memory";
 import { convertToWebpTool } from "./tools";
@@ -29,5 +30,9 @@ When the user asks to convert:
   model: gpt5NanoModelId,
   workspace,
   tools: { convertToWebpTool },
+  inputProcessors: [
+    new ToolCallFilter(),
+    new TokenLimiterProcessor(120_000),
+  ],
   memory: agentMemory,
 });

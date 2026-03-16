@@ -1,5 +1,6 @@
 import { Mastra } from "@mastra/core";
 import { AzureOpenAIGateway } from "@mastra/core/llm";
+import { Observability, DefaultExporter } from "@mastra/observability";
 import { productionAgent } from "./agents/production";
 import { audioVideoAgent } from "./agents/audio-video";
 import { coordinatorAgent } from "./agents/coordinator";
@@ -25,6 +26,14 @@ export const mastra = new Mastra({
       deployments: azureGatewayDeployments,
     }),
   },
+  observability: new Observability({
+    configs: {
+      default: {
+        serviceName: "production-studio",
+        exporters: [new DefaultExporter()],
+      },
+    },
+  }),
   // Shared storage instance — required for workflow state persistence between start and resume
   storage: sharedStore,
 });

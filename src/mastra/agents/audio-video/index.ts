@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
 import { workspace } from "../../workspace";
 import { agentMemory } from "../../memory";
 import { 
@@ -226,17 +227,24 @@ User: "Generate subtitles for wild_project.mp4"
 - If the user wants to GENERATE SUBTITLES -> start-subtitle-generator`,
   model: gpt5NanoModelId,
   workspace,
-  tools: { 
-    startSilenceCutterTool, 
-    resumeSilenceCutterTool, 
+  tools: {
+    startSilenceCutterTool,
+    resumeSilenceCutterTool,
     startSubtitleGeneratorTool,
     resumeSubtitleGeneratorTool,
     checkSubtitleStatusTool,
-    voiceIsolationTool, 
-    startSmartHighlightsTool, 
-    resumeSmartHighlightsTool, 
-    checkHighlightsStatusTool, 
-    volumeNormalizerTool 
+    voiceIsolationTool,
+    startSmartHighlightsTool,
+    resumeSmartHighlightsTool,
+    checkHighlightsStatusTool,
+    volumeNormalizerTool
   },
+  inputProcessors: [
+    // Remove previous tool call/result pairs from context — they inflate tokens
+    // without providing value on subsequent LLM turns (especially during polling loops).
+    new ToolCallFilter(),
+    // Safety net: keep context under gpt-5-nano's window by trimming oldest messages.
+    new TokenLimiterProcessor(120_000),
+  ],
   memory: agentMemory,
 });

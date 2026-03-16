@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { TokenLimiterProcessor } from "@mastra/core/processors";
 import { coordinatorMemory } from "../../memory";
 import { productionAgent } from "../production";
 import { audioVideoAgent } from "../audio-video";
@@ -39,5 +40,25 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
   model: gpt5MiniModelId,
   agents: { productionAgent, audioVideoAgent },
+  inputProcessors: [
+    new TokenLimiterProcessor(120_000),
+  ],
+  defaultOptions: {
+    delegation: {
+      // Limit context forwarded to sub-agents: only pass the last 10 messages
+      // and strip tool-invocation parts. Sub-agents don't need the full parent
+      // conversation history — they receive a self-contained prompt from the
+      // coordinator. Less context = faster Azure responses.
+      messageFilter: ({ messages }) => {
+        return messages
+          .filter(m => {
+            const parts = (m as any).content?.parts;
+            if (!Array.isArray(parts)) return true;
+            return !parts.every((p: any) => p.type === "tool-invocation" || p.type === "tool-result");
+          })
+          .slice(-10);
+      },
+    },
+  },
   memory: coordinatorMemory,
 });
