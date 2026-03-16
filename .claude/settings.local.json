@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
+<<<<<<< HEAD
       "WebFetch(domain:mastra.ai)"
+=======
+      "Bash(grep -E \"^-.*\\\\.d\\\\.ts$\")",
+      "Bash(npx tsc:*)",
+      "WebSearch"
+>>>>>>> audio-video
     ]
   }
 }

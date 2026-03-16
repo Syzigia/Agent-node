@@ -1,4 +1,5 @@
 import { LocalFilesystem, Workspace } from "@mastra/core/workspace";
+import * as fs from "fs";
 import * as path from "path";
 
 export const WORKSPACE_PATH =
@@ -10,6 +11,107 @@ export const workspace = new Workspace({
     readOnly: false,
   }),
 });
+
+const MEDIA_EXTENSIONS = new Set([
+  ".mp4",
+  ".mov",
+  ".mkv",
+  ".avi",
+  ".webm",
+  ".flv",
+  ".mp3",
+  ".wav",
+  ".m4a",
+  ".flac",
+  ".ogg",
+]);
+
+function walkWorkspaceFiles(currentDir: string, rootDir: string, results: string[]): void {
+  const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const absolutePath = path.join(currentDir, entry.name);
+
+    if (entry.isDirectory()) {
+      walkWorkspaceFiles(absolutePath, rootDir, results);
+      continue;
+    }
+
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    const relativePath = path.relative(rootDir, absolutePath).replace(/\\/g, "/");
+    results.push(relativePath);
+  }
+}
+
+export function listWorkspaceMediaFiles(): string[] {
+  const files: string[] = [];
+  walkWorkspaceFiles(WORKSPACE_PATH, WORKSPACE_PATH, files);
+
+  return files.filter((file) => MEDIA_EXTENSIONS.has(path.extname(file).toLowerCase()));
+}
+
+export function resolveWorkspaceMediaPath(filePath: string): {
+  resolvedPath: string;
+  candidates: string[];
+} {
+  const sanitized = sanitizePath(filePath);
+  const directPath = path.join(WORKSPACE_PATH, sanitized);
+
+  if (fs.existsSync(directPath) && fs.statSync(directPath).isFile()) {
+    return {
+      resolvedPath: sanitized.replace(/\\/g, "/"),
+      candidates: [sanitized.replace(/\\/g, "/")],
+    };
+  }
+
+  const mediaFiles = listWorkspaceMediaFiles();
+  const normalizedInput = sanitized.replace(/\\/g, "/").toLowerCase();
+  const inputBase = path.basename(sanitized, path.extname(sanitized)).toLowerCase();
+  const inputFileName = path.basename(sanitized).toLowerCase();
+
+  const exactFileNameMatches = mediaFiles.filter(
+    (file) => path.basename(file).toLowerCase() === inputFileName,
+  );
+
+  if (exactFileNameMatches.length === 1) {
+    return { resolvedPath: exactFileNameMatches[0]!, candidates: exactFileNameMatches };
+  }
+
+  const basenameMatches = mediaFiles.filter(
+    (file) => path.basename(file, path.extname(file)).toLowerCase() === inputBase,
+  );
+
+  if (basenameMatches.length === 1) {
+    return { resolvedPath: basenameMatches[0]!, candidates: basenameMatches };
+  }
+
+  const prefixMatches = mediaFiles.filter((file) => file.toLowerCase().startsWith(normalizedInput));
+  if (prefixMatches.length === 1) {
+    return { resolvedPath: prefixMatches[0]!, candidates: prefixMatches };
+  }
+
+  const candidates = exactFileNameMatches.length
+    ? exactFileNameMatches
+    : basenameMatches.length
+      ? basenameMatches
+      : prefixMatches;
+
+  if (candidates.length > 1) {
+    throw new Error(
+      `Media file path is ambiguous: "${filePath}". Possible matches: ${candidates.join(", ")}`,
+    );
+  }
+
+  throw new Error(
+    `Media file not found in workspace: "${filePath}". Available similar files: ${mediaFiles
+      .filter((file) => path.basename(file).toLowerCase().includes(inputBase))
+      .slice(0, 5)
+      .join(", ") || "none"}`,
+  );
+}
 
 /**
  * Sanitizes a file path from LLM input to prevent:

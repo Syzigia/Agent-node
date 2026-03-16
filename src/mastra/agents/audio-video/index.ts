@@ -9,9 +9,9 @@ import {
   resumeSubtitleGeneratorTool,
   checkSubtitleStatusTool,
   voiceIsolationTool,
-  startSmartHighlightsTool,
-  resumeSmartHighlightsTool,
-  checkHighlightsStatusTool,
+  startSmartHighlightsV2Tool,
+  resumeSmartHighlightsV2Tool,
+  checkSmartHighlightsV2StatusTool,
 } from "./tools";
 import { volumeNormalizerTool } from "./tools/volume-normalizer";
 import { gpt5NanoModelId } from "../../models/azure-openai";
@@ -78,61 +78,61 @@ Call resume-silence-cutter with:
 
 NEVER call resume-silence-cutter without explicit user confirmation.
 
-## 3. Smart Highlights Clipper (Intelligent Highlight Extraction)
+## 3. Smart Highlights V2 (Multimodal + Copy-if-safe)
 
-Extracts the best moments from a video using audio and visual analysis.
+Use Smart Highlights V2 when the user wants better clip quality or more semantic/visual-aware selection.
 
 ### MANDATORY flow
 
-#### STEP 1 - Start with start-smart-highlights
-Call start-smart-highlights with the file. This tool analyzes the video and pauses for configuration.
-**IMPORTANT:** Save the runId returned by this tool - you will need it for ALL subsequent steps.
+#### STEP 1 - Start with start-smart-highlights-v2
+Call start-smart-highlights-v2 with the file and save the runId.
 
-#### STEP 2 - Present configuration to the user
-Show default values and ask:
-"I analyzed the video [file]. Proposed configuration:
-- Number of clips: [defaultConfig.numberOfClips]
-- Duration per clip: [defaultConfig.targetDuration] seconds
-- Content type: [defaultConfig.contentType] (visual/textual)
-- Output folder: [defaultConfig.outputFolder]
+If start-smart-highlights-v2 returns status "error", STOP and explain the error to the user.
+Do not retry in a loop.
 
-[If costWarning exists, show it]
+#### STEP 2 - Present configuration
+Ask for:
+- Number of clips
+- Approximate target duration per clip
+- Output folder
 
-Shall we proceed with this configuration or do you want to modify something?"
+Explain clearly that duration is approximate and the workflow may return fewer clips if the footage does not support the requested amount.
 
-#### STEP 3 - Resume with config (fire-and-forget)
-Call resume-smart-highlights with step: "config-step", the runId, and user config.
-This tool returns IMMEDIATELY - the workflow continues processing in the background.
+#### STEP 3 - Resume config (fire-and-forget)
+Call resume-smart-highlights-v2 with step: "v2-config-step".
 
-#### STEP 4 - Poll for progress
-Call check-highlights-status with the runId repeatedly (every 15-30 seconds) until:
-- status is "suspended" (workflow reached clip selection) -> go to STEP 5
-- status is "failed" -> report the error to the user
-Keep the user informed: "Processing video... completed steps: [list]"
+Immediately tell the user that processing started, then poll.
 
-#### STEP 5 - Present proposed clips
-When check-highlights-status returns status "suspended" with suspendedAtStep "select-clips":
-Show the proposed clips from the proposedClips field:
-"I found the following highlight candidates:
-[list clips with start/end times, durations, and reasons]
+#### STEP 4 - Poll progress
+Call check-smart-highlights-v2-status every 15-30 seconds until:
+- status is "suspended" at "v2-approval-step" -> go to STEP 5
+- status is "success" -> report result
+- status is "failed" -> report error
 
-Do you approve these clips? (yes/no/modify)"
+#### STEP 5 - Present clip proposals
+Show each proposed clip with:
+- start/end time
+- score
+- strategy (stream-copy or reencode)
+- reason
 
-#### STEP 6 - Resume with clip approval (fire-and-forget)
-Call resume-smart-highlights with step: "select-clips", the runId, and:
-- approved: true/false
-- modifiedClips: [optional array of {start, end} if user modified clips]
+Ask for approval or modifications.
 
-#### STEP 7 - Poll for completion
-Call check-highlights-status with the runId repeatedly until:
-- status is "success" -> show the final results (output folder, clips generated)
-- status is "failed" -> report the error
+#### STEP 6 - Resume approval
+Call resume-smart-highlights-v2 with step: "v2-approval-step" and approval data.
 
-### Key rules for Smart Highlights:
+#### STEP 7 - Poll completion
+Call check-smart-highlights-v2-status until success or failure.
+
+### Key rules for Smart Highlights V2:
+- V2 defaults to copy-if-safe and falls back to re-encode if boundaries are not stream-copy safe
 - ALWAYS save and reuse the same runId throughout the entire flow
 - NEVER await the resume tool - it returns immediately by design
-- ALWAYS use check-highlights-status to poll after each resume call
+- ALWAYS use check-smart-highlights-v2-status to poll after each resume call
 - Poll every 15-30 seconds; the workflow can take several minutes for long videos
+- NEVER skip STEP 2; always ask for clip count and approximate duration before resuming config
+- If the user provides a basename without extension, prefer the exact workspace media match returned by the tool
+- On tool error, surface it once and wait for the user instead of retrying automatically
 
 ## 4. Volume Normalizer (Audio Leveling)
 
@@ -223,7 +223,7 @@ User: "Generate subtitles for wild_project.mp4"
 - If the user wants to FIX VOLUME (too quiet/loud, normalize) -> volume-normalizer
 - If the user wants to IMPROVE audio quality (remove noise/echo) -> voice-isolation
 - If the user wants to CUT silences -> start-silence-cutter + resume-silence-cutter
-- If the user wants to EXTRACT highlights/best moments -> start-smart-highlights + resume-smart-highlights
+- If the user wants to EXTRACT highlights/best moments -> start-smart-highlights-v2 + resume-smart-highlights-v2
 - If the user wants to GENERATE SUBTITLES -> start-subtitle-generator`,
   model: gpt5NanoModelId,
   workspace,
@@ -233,11 +233,19 @@ User: "Generate subtitles for wild_project.mp4"
     startSubtitleGeneratorTool,
     resumeSubtitleGeneratorTool,
     checkSubtitleStatusTool,
+<<<<<<< HEAD
     voiceIsolationTool,
     startSmartHighlightsTool,
     resumeSmartHighlightsTool,
     checkHighlightsStatusTool,
     volumeNormalizerTool
+=======
+    voiceIsolationTool, 
+    startSmartHighlightsV2Tool,
+    resumeSmartHighlightsV2Tool,
+    checkSmartHighlightsV2StatusTool,
+    volumeNormalizerTool 
+>>>>>>> audio-video
   },
   inputProcessors: [
     // Remove previous tool call/result pairs from context — they inflate tokens

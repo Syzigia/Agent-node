@@ -3,7 +3,7 @@ import { TokenLimiterProcessor } from "@mastra/core/processors";
 import { coordinatorMemory } from "../../memory";
 import { productionAgent } from "../production";
 import { audioVideoAgent } from "../audio-video";
-import { gpt5MiniModelId } from "../../models/azure-openai";
+import { gpt53ChatModelId } from "../../models/azure-openai";
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -21,7 +21,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 ### audio-video-agent
 - Process audio or video
-- Extract highlights/clips from a video → use smart-highlights
+- Extract highlights/clips from a video → use smart-highlights-v2
 - Cut silences from podcasts or videos → use silence-cutter
 - Isolate voice from audio/video → use demucs (local ONNX processing)
 - Any media post-production task
@@ -38,7 +38,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 3. **runId**: The audio-video-agent returns a runId when starting workflows.
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
-  model: gpt5MiniModelId,
+  model: gpt53ChatModelId,
   agents: { productionAgent, audioVideoAgent },
   inputProcessors: [
     new TokenLimiterProcessor(120_000),
