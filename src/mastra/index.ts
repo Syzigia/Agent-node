@@ -1,28 +1,42 @@
 import { Mastra } from "@mastra/core";
-import { AzureOpenAIGateway } from "@mastra/core/llm";
 import { productionAgent } from "./agents/production";
 import { audioVideoAgent } from "./agents/audio-video";
+import { clipSelectorMultimodalAgent } from "./agents/audio-video/clip-selector-multimodal";
 import { coordinatorAgent } from "./agents/coordinator";
 import { silenceCutterWorkflow } from "./workflows/silence-cutter-workflow";
-import { smartHighlightsClipperWorkflow } from "./workflows/smart-highlights-clipper";
+import { smartHighlightsV2Workflow } from "./workflows/smart-highlights-v2";
 import { subtitleGeneratorWorkflow } from "./workflows/subtitle-generator-workflow";
 import { sharedStore } from "./memory";
+import { MultiResourceAzureGateway } from "./models/multi-resource-azure-gateway";
 import {
   azureApiKey,
   azureApiVersion,
+  azureDirectApiKey,
   azureGatewayDeployments,
   azureResourceName,
+  gpt53ChatDeployment,
+  normalizedAzureDirectBaseUrl,
 } from "./models/azure-openai";
 
+const directOverrides = normalizedAzureDirectBaseUrl
+  ? {
+      [gpt53ChatDeployment]: {
+        baseURL: normalizedAzureDirectBaseUrl,
+        apiKey: azureDirectApiKey,
+      },
+    }
+  : undefined;
+
 export const mastra = new Mastra({
-  agents: { productionAgent, audioVideoAgent, coordinatorAgent },
-  workflows: { silenceCutterWorkflow, smartHighlightsClipperWorkflow, subtitleGeneratorWorkflow },
+  agents: { productionAgent, audioVideoAgent, coordinatorAgent, clipSelectorMultimodalAgent },
+  workflows: { silenceCutterWorkflow, smartHighlightsV2Workflow, subtitleGeneratorWorkflow },
   gateways: {
-    azureOpenAI: new AzureOpenAIGateway({
-      resourceName: azureResourceName,
-      apiKey: azureApiKey,
+    azureOpenAI: new MultiResourceAzureGateway({
+      defaultResourceName: azureResourceName,
+      defaultApiKey: azureApiKey,
       apiVersion: azureApiVersion,
       deployments: azureGatewayDeployments,
+      overrides: directOverrides,
     }),
   },
   // Shared storage instance — required for workflow state persistence between start and resume

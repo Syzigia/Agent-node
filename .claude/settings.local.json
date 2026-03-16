@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^-.*\\\\.d\\\\.ts$\")",
+      "Bash(npx tsc:*)",
+      "WebSearch"
+    ]
+  }
+}
