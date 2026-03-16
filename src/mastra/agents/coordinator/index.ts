@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent";
-import { memory } from "../../memory";
+import { coordinatorMemory } from "../../memory";
 import { productionAgent } from "../production";
 import { audioVideoAgent } from "../audio-video";
 import { gpt5MiniModelId } from "../../models/azure-openai";
@@ -39,5 +39,5 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
   model: gpt5MiniModelId,
   agents: { productionAgent, audioVideoAgent },
-  memory,
+  memory: coordinatorMemory,
 });

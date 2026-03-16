@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { workspace } from "../../workspace";
-import { memory } from "../../memory";
+import { agentMemory } from "../../memory";
 import { convertToWebpTool } from "./tools";
 import { gpt5NanoModelId } from "../../models/azure-openai";
 
@@ -29,5 +29,5 @@ When the user asks to convert:
   model: gpt5NanoModelId,
   workspace,
   tools: { convertToWebpTool },
-  memory,
+  memory: agentMemory,
 });
