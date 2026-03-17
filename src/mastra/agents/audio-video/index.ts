@@ -233,19 +233,11 @@ User: "Generate subtitles for wild_project.mp4"
     startSubtitleGeneratorTool,
     resumeSubtitleGeneratorTool,
     checkSubtitleStatusTool,
-<<<<<<< HEAD
     voiceIsolationTool,
-    startSmartHighlightsTool,
-    resumeSmartHighlightsTool,
-    checkHighlightsStatusTool,
-    volumeNormalizerTool
-=======
-    voiceIsolationTool, 
     startSmartHighlightsV2Tool,
     resumeSmartHighlightsV2Tool,
     checkSmartHighlightsV2StatusTool,
-    volumeNormalizerTool 
->>>>>>> audio-video
+    volumeNormalizerTool
   },
   inputProcessors: [
     // Remove previous tool call/result pairs from context — they inflate tokens
