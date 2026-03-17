@@ -1,9 +1,4 @@
 import { Mastra } from "@mastra/core";
-<<<<<<< HEAD
-import { AzureOpenAIGateway } from "@mastra/core/llm";
-import { Observability, DefaultExporter } from "@mastra/observability";
-=======
->>>>>>> audio-video
 import { productionAgent } from "./agents/production";
 import { audioVideoAgent } from "./agents/audio-video";
 import { clipSelectorMultimodalAgent } from "./agents/audio-video/clip-selector-multimodal";
@@ -44,14 +39,6 @@ export const mastra = new Mastra({
       overrides: directOverrides,
     }),
   },
-  observability: new Observability({
-    configs: {
-      default: {
-        serviceName: "production-studio",
-        exporters: [new DefaultExporter()],
-      },
-    },
-  }),
   // Shared storage instance — required for workflow state persistence between start and resume
   storage: sharedStore,
 });
