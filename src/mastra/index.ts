@@ -17,6 +17,7 @@ import {
   gpt53ChatDeployment,
   normalizedAzureDirectBaseUrl,
 } from "./models/azure-openai";
+import { photosAgent } from "./agents/photos";
 
 const directOverrides = normalizedAzureDirectBaseUrl
   ? {
@@ -28,7 +29,7 @@ const directOverrides = normalizedAzureDirectBaseUrl
   : undefined;
 
 export const mastra = new Mastra({
-  agents: { productionAgent, audioVideoAgent, coordinatorAgent, clipSelectorMultimodalAgent },
+  agents: { productionAgent, audioVideoAgent, coordinatorAgent, clipSelectorMultimodalAgent, photosAgent },
   workflows: { silenceCutterWorkflow, smartHighlightsV2Workflow, subtitleGeneratorWorkflow },
   gateways: {
     azureOpenAI: new MultiResourceAzureGateway({

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(grep -E \"^-.*\\\\.d\\\\.ts$\")",
       "Bash(npx tsc:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
