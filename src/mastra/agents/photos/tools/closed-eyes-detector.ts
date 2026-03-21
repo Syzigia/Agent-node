@@ -1,11 +1,13 @@
 import { Tool } from "@mastra/core/tools";
 import z from "zod";
-import { sanitizePath, WORKSPACE_PATH } from "../../../workspace";
-import path from "node:path";
-import fs from "node:fs";
+import pLimit from "p-limit";
+import { s3Filesystem } from "../../../workspace/s3";
 import { createRequire } from "node:module";
 import sharp from "sharp";
 import canvas from "canvas";
+
+const CONCURRENCY = 5;
+const BATCH_TIMEOUT_MS = 240_000;
 
 const _require = createRequire(import.meta.url);
 
@@ -23,8 +25,8 @@ async function loadModels() {
     await faceapi.tf.setBackend("wasm");
     await faceapi.tf.ready();
 
-    const modelPath = path.join(
-      path.dirname(_require.resolve("@vladmandic/face-api/package.json")),
+    const modelPath = (await import("node:path")).join(
+      (await import("node:path")).dirname(_require.resolve("@vladmandic/face-api/package.json")),
       "model",
     );
     await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath);
@@ -57,7 +59,7 @@ function calculateEAR(eyePoints: Point[]): number {
   return (vertical1 + vertical2) / (2 * horizontal);
 }
 
-async function detectClosedEyes(imagePath: string, threshold: number): Promise<{
+async function detectClosedEyes(imageBuffer: Buffer, threshold: number): Promise<{
   hasClosedEyes: boolean;
   leftEyeEAR: number;
   rightEyeEAR: number;
@@ -67,7 +69,7 @@ async function detectClosedEyes(imagePath: string, threshold: number): Promise<{
     const faceapi = await loadModels();
 
     // Convert to PNG buffer via sharp to support all formats (webp, tiff, etc.)
-    const pngBuffer = await sharp(imagePath).png().toBuffer();
+    const pngBuffer = await sharp(imageBuffer).png().toBuffer();
     const img = await canvas.loadImage(pngBuffer);
     const c = new canvas.Canvas(img.width, img.height);
     const ctx = c.getContext("2d");
@@ -142,6 +144,8 @@ export const closedEyesDetectorTool = new Tool({
       success: z.boolean(),
       processed: z.number(),
       failed: z.number(),
+      skipped: z.number(),
+      remaining: z.array(z.string()),
       results: z.array(
         z.object({
           file: z.string(),
@@ -168,60 +172,61 @@ export const closedEyesDetectorTool = new Tool({
       faceCount: number;
     }> = [];
     const errors: Array<{ file: string; error: string }> = [];
+    const skipped: string[] = [];
     const thresholdValue = threshold === "sensitive" ? 0.15 : threshold === "relaxed" ? 0.25 : 0.2;
 
-    const eyesClosedDir = path.join(WORKSPACE_PATH, "eyes_closed");
-    fs.mkdirSync(eyesClosedDir, { recursive: true });
+    const limit = pLimit(CONCURRENCY);
+    const start = Date.now();
 
-    for (const rawFile of files) {
-      let relFile: string;
-
-      try {
-        relFile = sanitizePath(rawFile);
-      } catch (err: any) {
-        errors.push({ file: rawFile, error: err.message });
-        continue;
-      }
-
-      const srcPath = path.join(WORKSPACE_PATH, relFile);
-
-      if (!fs.existsSync(srcPath)) {
-        errors.push({ file: relFile, error: "File not found in workspace" });
-        continue;
-      }
-
-      const result = await detectClosedEyes(srcPath, thresholdValue);
-
-      if ("error" in result) {
-        errors.push({ file: relFile, error: String(result.error) });
-      } else {
-        results.push({
-          file: relFile,
-          hasClosedEyes: result.hasClosedEyes,
-          leftEyeEAR: result.leftEyeEAR,
-          rightEyeEAR: result.rightEyeEAR,
-          faceCount: result.faceCount,
-        });
-
-        if (result.hasClosedEyes) {
-          const destPath = path.join(eyesClosedDir, path.basename(relFile));
-          // Use copy+delete instead of rename to avoid EBUSY on Windows
-          // when sharp/canvas still holds a handle on the file
-          fs.copyFileSync(srcPath, destPath);
-          try {
-            fs.unlinkSync(srcPath);
-          } catch {
-            // If delete fails (EBUSY), file will remain in both locations
-          }
+    const promises = files.map(file =>
+      limit(async () => {
+        if (Date.now() - start > BATCH_TIMEOUT_MS) {
+          skipped.push(file);
+          return;
         }
-      }
-    }
+
+        try {
+          const exists = await s3Filesystem.exists(file);
+          if (!exists) {
+            errors.push({ file, error: "File not found in S3" });
+            return;
+          }
+
+          const buffer = await s3Filesystem.readFile(file) as Buffer;
+          const result = await detectClosedEyes(buffer, thresholdValue);
+
+          if ("error" in result) {
+            errors.push({ file, error: String(result.error) });
+          } else {
+            results.push({
+              file,
+              hasClosedEyes: result.hasClosedEyes,
+              leftEyeEAR: result.leftEyeEAR,
+              rightEyeEAR: result.rightEyeEAR,
+              faceCount: result.faceCount,
+            });
+
+            if (result.hasClosedEyes) {
+              const fileName = file.split("/").pop() || file;
+              const destPath = `eyes_closed/${fileName}`;
+              await s3Filesystem.moveFile(file, destPath);
+            }
+          }
+        } catch (err: any) {
+          errors.push({ file, error: err.message });
+        }
+      })
+    );
+
+    await Promise.all(promises);
 
     return {
       results: {
         success: results.length > 0,
         processed: results.length,
         failed: errors.length,
+        skipped: skipped.length,
+        remaining: skipped,
         results,
         errors,
       },

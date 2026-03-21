@@ -1,23 +1,21 @@
 import { Tool } from "@mastra/core/tools";
 import sharp from "sharp";
 import z from "zod";
-import { sanitizePath, WORKSPACE_PATH } from "../../../workspace";
-import path from "node:path";
-import fs from "node:fs";
+import pLimit from "p-limit";
+import { s3Filesystem } from "../../../workspace/s3";
+import type { errorResult } from "./types";
+
+const CONCURRENCY = 5;
+const BATCH_TIMEOUT_MS = 240_000; // 4 min safety margin
 
 type blurTestResult = {
     blurScore: number;
     isBlurred: boolean
 }
 
-type errorResult = {
-    file: string;
-    error: any;
-}
-
-async function detectBlur(imageInput: string, threshold: number = 100): Promise<blurTestResult | errorResult> {
+async function detectBlur(imageBuffer: Buffer, threshold: number = 100): Promise<blurTestResult | errorResult> {
     try {
-        const { data } = await sharp(imageInput)
+        const { data } = await sharp(imageBuffer)
             .greyscale()
             .convolve({
                 width: 3,
@@ -34,13 +32,13 @@ async function detectBlur(imageInput: string, threshold: number = 100): Promise<
         let sum = 0;
         const totalPixels = data.length;
         for (let i = 0; i < totalPixels; i++) {
-            sum += data[i];
+            sum += data[i]!;
         }
         const mean = sum / totalPixels;
 
         let varianceSum = 0;
         for (let i = 0; i < totalPixels; i++) {
-            varianceSum += Math.pow(data[i] - mean, 2);
+            varianceSum += Math.pow(data[i]! - mean, 2);
         }
 
         const variance = varianceSum / totalPixels;
@@ -53,7 +51,7 @@ async function detectBlur(imageInput: string, threshold: number = 100): Promise<
 
     catch (error) {
         return {
-            file: imageInput,
+            file: "buffer",
             error: error
         };
     }
@@ -62,9 +60,9 @@ async function detectBlur(imageInput: string, threshold: number = 100): Promise<
 export const blurredPhotosDetectorTool = new Tool({
     id: "blurred-photos-detector",
     description: `Detects blurry photos from a list of image files.
-    
+
     Accepts one or more image files and a threshold (Low: 50, normal: 100, high: 250) and returns which photos are blurry based on the variance of the Laplacian method. The blurry photos are moved to a folder called "blurry_photos". Supported formats: jpg, jpeg, png, webp, tiff.
-    
+
     Examples input:
     1. Single photo:
     {
@@ -86,6 +84,8 @@ export const blurredPhotosDetectorTool = new Tool({
             success: z.boolean(),
             processed: z.number(),
             failed: z.number(),
+            skipped: z.number(),
+            remaining: z.array(z.string()),
             results: z.array(
                 z.object({
                     file: z.string(),
@@ -104,46 +104,55 @@ export const blurredPhotosDetectorTool = new Tool({
     execute: async ({ files, threshold }) => {
         const results: Array<{ file: string; blurScore: number; isBlurred: boolean }> = [];
         const errors: Array<{ file: string; error: string }> = [];
+        const skipped: string[] = [];
         const thresholdValue = threshold === "low" ? 50 : threshold === "high" ? 250 : 100;
 
-        const blurryDir = path.join(WORKSPACE_PATH, "blurry_photos");
-        fs.mkdirSync(blurryDir, { recursive: true });
+        const limit = pLimit(CONCURRENCY);
+        const start = Date.now();
 
-        for (const rawFile of files) {
-            let relFile: string;
-
-            try {
-                relFile = sanitizePath(rawFile);
-            } catch (err: any) {
-                errors.push({ file: rawFile, error: err.message });
-                continue;
-            }
-
-            const srcPath = path.join(WORKSPACE_PATH, relFile);
-
-            if (!fs.existsSync(srcPath)) {
-                errors.push({ file: relFile, error: "File not found in workspace" });
-                continue;
-            }
-
-            const result = await detectBlur(srcPath, thresholdValue);
-
-            if ("error" in result) {
-                errors.push({ file: relFile, error: String(result.error) });
-            } else {
-                results.push({ file: relFile, blurScore: result.blurScore, isBlurred: result.isBlurred });
-
-                if (result.isBlurred) {
-                    fs.renameSync(srcPath, path.join(blurryDir, path.basename(relFile)));
+        const promises = files.map(file =>
+            limit(async () => {
+                if (Date.now() - start > BATCH_TIMEOUT_MS) {
+                    skipped.push(file);
+                    return;
                 }
-            }
-        }
+
+                try {
+                    const exists = await s3Filesystem.exists(file);
+                    if (!exists) {
+                        errors.push({ file, error: "File not found in S3" });
+                        return;
+                    }
+
+                    const buffer = await s3Filesystem.readFile(file) as Buffer;
+                    const result = await detectBlur(buffer, thresholdValue);
+
+                    if ("error" in result) {
+                        errors.push({ file, error: String(result.error) });
+                    } else {
+                        results.push({ file, blurScore: result.blurScore, isBlurred: result.isBlurred });
+
+                        if (result.isBlurred) {
+                            const fileName = file.split("/").pop() || file;
+                            const destPath = `blurry_photos/${fileName}`;
+                            await s3Filesystem.moveFile(file, destPath);
+                        }
+                    }
+                } catch (err: any) {
+                    errors.push({ file, error: err.message });
+                }
+            })
+        );
+
+        await Promise.all(promises);
 
         return {
             results: {
                 success: results.length > 0,
                 processed: results.length,
                 failed: errors.length,
+                skipped: skipped.length,
+                remaining: skipped,
                 results,
                 errors,
             },

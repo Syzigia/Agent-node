@@ -31,6 +31,7 @@
     "@mastra/core": "^1.13.2",
     "@mastra/libsql": "^1.7.0",
     "@mastra/memory": "^1.8.2",
+    "@mastra/s3": "^0.3.0",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "@vladmandic/face-api": "^1.7.15",
@@ -41,6 +42,7 @@
     "form-data": "^4.0.2",
     "onnxruntime-node": "^1.24.3",
     "openai": "^6.29.0",
+    "p-limit": "^7.3.0",
     "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "zod": "4"

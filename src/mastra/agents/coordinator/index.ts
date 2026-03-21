@@ -21,6 +21,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 ### photos-agent
 - Detect blurry or out-of-focus photos
 - Filter, classify or analyze photo quality
+- Adjust gamma/brightness of photos (change-gamma tool with options: apple, srgb, broadcast - saves to gamma_correction folder)
 - Any task related to photo quality or enhancement
 
 ### audio-video-agent
