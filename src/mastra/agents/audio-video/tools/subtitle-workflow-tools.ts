@@ -1,29 +1,29 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import type { ToolExecutionContext } from "@mastra/core/tools";
-import { sanitizePath } from "../../../workspace";
+import { createTool } from "@mastra/core/tools"
+import { z } from "zod"
+import type { ToolExecutionContext } from "@mastra/core/tools"
+import { sanitizePath } from "../../../workspace"
 import {
   hexColorSchema,
   safeAreaBottomPercentSchema,
   subtitleStylePresetSchema,
-} from "../../../workflows/subtitle-generator-workflow/apply-subtitles-steps";
+} from "../../../workflows/subtitle-generator-workflow/apply-subtitles-steps"
 import {
   subtitleAnimationPresetSchema,
   subtitleLayoutModeSchema,
   subtitleTextCaseSchema,
-} from "../../../workflows/subtitle-generator-workflow/tiktok-ass";
+} from "../../../workflows/subtitle-generator-workflow/tiktok-ass"
 
 const wordSchema = z.object({
   word: z.string(),
   start: z.number(),
   end: z.number(),
-});
+})
 
 const segmentSchema = z.object({
   text: z.string(),
   start: z.number(),
   end: z.number(),
-});
+})
 
 const subtitleResultSchema = z.object({
   words: z.array(wordSchema),
@@ -50,7 +50,7 @@ const subtitleResultSchema = z.object({
       safeAreaBottomPercent: safeAreaBottomPercentSchema,
     })
     .optional(),
-});
+})
 
 function extractWorkflowError(result: any): string {
   const topLevelMessage =
@@ -58,24 +58,24 @@ function extractWorkflowError(result: any): string {
       ? result.error.message
       : typeof result?.error === "string"
         ? result.error
-        : "";
+        : ""
 
   if (topLevelMessage) {
-    return topLevelMessage;
+    return topLevelMessage
   }
 
   const lastStepId = Array.isArray(result?.stepExecutionPath)
     ? result.stepExecutionPath[result.stepExecutionPath.length - 1]
-    : undefined;
+    : undefined
   const lastStepError = lastStepId
     ? result?.steps?.[lastStepId]?.error?.message
-    : undefined;
+    : undefined
 
   if (typeof lastStepError === "string" && lastStepError.length > 0) {
-    return lastStepError;
+    return lastStepError
   }
 
-  return "Workflow failed without a detailed error message.";
+  return "Workflow failed without a detailed error message."
 }
 
 /**
@@ -94,15 +94,21 @@ This tool:
 
 Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
   inputSchema: z.object({
-    filePath: z.string().describe("Relative path within the workspace (e.g., wild_project.mp4)"),
+    filePath: z
+      .string()
+      .describe("Relative path within the workspace (e.g., wild_project.mp4)"),
     language: z
       .string()
       .optional()
-      .describe("ISO-639-1 language code (e.g. 'en', 'es'). Improves accuracy and latency."),
+      .describe(
+        "ISO-639-1 language code (e.g. 'en', 'es'). Improves accuracy and latency."
+      ),
     prompt: z
       .string()
       .optional()
-      .describe("Optional hint text to guide Whisper with domain-specific vocabulary."),
+      .describe(
+        "Optional hint text to guide Whisper with domain-specific vocabulary."
+      ),
   }),
   outputSchema: z.object({
     status: z.string(),
@@ -115,43 +121,53 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
     error: z.string().optional(),
   }),
   execute: async (inputData, context: ToolExecutionContext) => {
-    console.log("[startSubtitleGeneratorTool] Starting execution...");
-    console.log("[startSubtitleGeneratorTool] Input:", JSON.stringify(inputData, null, 2));
+    console.log("[startSubtitleGeneratorTool] Starting execution...")
+    console.log(
+      "[startSubtitleGeneratorTool] Input:",
+      JSON.stringify(inputData, null, 2)
+    )
 
-    const filePath = sanitizePath(inputData.filePath);
-    const { language, prompt } = inputData;
-    const { mastra } = context;
+    const filePath = sanitizePath(inputData.filePath)
+    const { language, prompt } = inputData
+    const { mastra } = context
 
     if (!mastra) {
-      console.error("[startSubtitleGeneratorTool] ERROR: Mastra instance not available");
-      throw new Error("Mastra instance not available in tool context");
+      console.error(
+        "[startSubtitleGeneratorTool] ERROR: Mastra instance not available"
+      )
+      throw new Error("Mastra instance not available in tool context")
     }
 
-    console.log("[startSubtitleGeneratorTool] Getting workflow...");
-    const workflow = mastra.getWorkflow("subtitleGeneratorWorkflow");
+    console.log("[startSubtitleGeneratorTool] Getting workflow...")
+    const workflow = mastra.getWorkflow("subtitleGeneratorWorkflow")
 
     if (!workflow) {
       return {
         status: "error",
         runId: "",
-        message: "Workflow not found. Verify that subtitleGeneratorWorkflow is registered.",
+        message:
+          "Workflow not found. Verify that subtitleGeneratorWorkflow is registered.",
         error: "subtitleGeneratorWorkflow not found",
-      };
+      }
     }
 
-    console.log("[startSubtitleGeneratorTool] Creating run...");
-    const run = await workflow.createRun();
-    console.log("[startSubtitleGeneratorTool] Run created with ID:", run.runId);
+    console.log("[startSubtitleGeneratorTool] Creating run...")
+    const run = await workflow.createRun()
+    console.log("[startSubtitleGeneratorTool] Run created with ID:", run.runId)
 
-    console.log("[startSubtitleGeneratorTool] Executing run.start()...");
+    console.log("[startSubtitleGeneratorTool] Executing run.start()...")
     const result = await run.start({
       inputData: {
         filePath,
         ...(language && { language }),
         ...(prompt && { prompt }),
       },
-    });
-    console.log("[startSubtitleGeneratorTool] Result of run.start():", JSON.stringify(result, null, 2));
+      requestContext: context.requestContext,
+    })
+    console.log(
+      "[startSubtitleGeneratorTool] Result of run.start():",
+      JSON.stringify(result, null, 2)
+    )
 
     if (result.status === "success") {
       return {
@@ -159,12 +175,13 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
         runId: run.runId,
         message: "Subtitles generated successfully.",
         result: result.result as z.infer<typeof subtitleResultSchema>,
-      };
+      }
     }
 
     if (result.status === "suspended") {
-      const suspendedStepKey = result.suspended?.[0]?.[0] ?? "unknown-step";
-      const suspendPayload = result.steps?.[suspendedStepKey]?.suspendPayload as any;
+      const suspendedStepKey = result.suspended?.[0]?.[0] ?? "unknown-step"
+      const suspendPayload = result.steps?.[suspendedStepKey]
+        ?.suspendPayload as any
       return {
         status: "suspended",
         workflowStatus: result.status,
@@ -172,14 +189,14 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
         message: "Workflow suspended and awaiting user input.",
         suspendedStep: suspendedStepKey,
         suspendPayload,
-      };
+      }
     }
 
     if (result.status === "failed") {
-      const errMsg = extractWorkflowError(result);
+      const errMsg = extractWorkflowError(result)
       const lastStepId = Array.isArray(result.stepExecutionPath)
         ? result.stepExecutionPath[result.stepExecutionPath.length - 1]
-        : undefined;
+        : undefined
       return {
         status: "error",
         workflowStatus: result.status,
@@ -188,7 +205,7 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
           ? `Workflow failed at step "${lastStepId}".`
           : "Workflow failed during execution.",
         error: errMsg,
-      };
+      }
     }
 
     if (result.status === "tripwire" || result.status === "paused") {
@@ -198,7 +215,7 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
         runId: run.runId,
         message: `Workflow finished with status "${result.status}".`,
         error: `Workflow status ${result.status} is not handled by this tool.`,
-      };
+      }
     }
 
     return {
@@ -207,9 +224,9 @@ Supported formats: mp4, mov, avi, mkv, webm, mp3, m4a, wav, ogg, flac`,
       runId: run.runId,
       message: "Workflow finished with an unexpected status.",
       error: "Unexpected workflow status",
-    };
+    }
   },
-});
+})
 
 /**
  * Tool 2: Resumes the subtitle generator workflow from a suspended step.
@@ -228,7 +245,9 @@ Provide the step id and resumeData required by that step.`,
     applyToVideo: z
       .boolean()
       .optional()
-      .describe("Convenience field for subtitle-burn-approval step when not nesting inside resumeData."),
+      .describe(
+        "Convenience field for subtitle-burn-approval step when not nesting inside resumeData."
+      ),
     stylePreset: subtitleStylePresetSchema
       .optional()
       .describe("Convenience field for subtitle-burn-approval step."),
@@ -262,8 +281,11 @@ Provide the step id and resumeData required by that step.`,
     error: z.string().optional(),
   }),
   execute: async (inputData, context: ToolExecutionContext) => {
-    console.log("[resumeSubtitleGeneratorTool] Starting execution...");
-    console.log("[resumeSubtitleGeneratorTool] Input:", JSON.stringify(inputData, null, 2));
+    console.log("[resumeSubtitleGeneratorTool] Starting execution...")
+    console.log(
+      "[resumeSubtitleGeneratorTool] Input:",
+      JSON.stringify(inputData, null, 2)
+    )
 
     const {
       runId,
@@ -277,12 +299,13 @@ Provide the step id and resumeData required by that step.`,
       layoutMode,
       animationPreset,
       safeAreaBottomPercent,
-    } = inputData;
-    const { mastra } = context;
+    } = inputData
+    const { mastra } = context
 
-    const normalizedStep = step === "burn-approval" ? "subtitle-burn-approval" : step;
+    const normalizedStep =
+      step === "burn-approval" ? "subtitle-burn-approval" : step
 
-    let effectiveResumeData: Record<string, unknown> = resumeData ?? {};
+    let effectiveResumeData: Record<string, unknown> = resumeData ?? {}
     if (normalizedStep === "subtitle-burn-approval") {
       effectiveResumeData = {
         ...effectiveResumeData,
@@ -294,7 +317,7 @@ Provide the step id and resumeData required by that step.`,
         ...(layoutMode && { layoutMode }),
         ...(animationPreset && { animationPreset }),
         ...(safeAreaBottomPercent !== undefined && { safeAreaBottomPercent }),
-      };
+      }
 
       if (effectiveResumeData.applyToVideo === undefined) {
         return {
@@ -305,28 +328,31 @@ Provide the step id and resumeData required by that step.`,
             'Missing required value "applyToVideo" for step "subtitle-burn-approval". Pass it inside resumeData or as a top-level input field.',
           error:
             'Invalid resume input. Example: { "runId": "...", "step": "subtitle-burn-approval", "resumeData": { "applyToVideo": true, "stylePreset": "shorts-bold", "baseColor": "#FFFFFF", "highlightColor": "#00E5FF", "textCase": "uppercase", "layoutMode": "two-lines", "animationPreset": "tiktok-pop", "safeAreaBottomPercent": 8 } }',
-        };
+        }
       }
     }
 
     if (!mastra) {
-      console.error("[resumeSubtitleGeneratorTool] ERROR: Mastra instance not available");
-      throw new Error("Mastra instance not available in tool context");
+      console.error(
+        "[resumeSubtitleGeneratorTool] ERROR: Mastra instance not available"
+      )
+      throw new Error("Mastra instance not available in tool context")
     }
 
-    const workflow = mastra.getWorkflow("subtitleGeneratorWorkflow");
+    const workflow = mastra.getWorkflow("subtitleGeneratorWorkflow")
     if (!workflow) {
       return {
         status: "error",
         runId,
-        message: "Workflow not found. Verify that subtitleGeneratorWorkflow is registered.",
+        message:
+          "Workflow not found. Verify that subtitleGeneratorWorkflow is registered.",
         error: "subtitleGeneratorWorkflow not found",
-      };
+      }
     }
 
     // Optionally verify run state if available
     try {
-      const runState = await workflow.getWorkflowRunById(runId);
+      const runState = await workflow.getWorkflowRunById(runId)
       if (runState?.status && runState.status !== "suspended") {
         return {
           status: runState.status,
@@ -336,18 +362,21 @@ Provide the step id and resumeData required by that step.`,
               ? `Cannot resume: workflow status is "failed". Start a new run with start-subtitle-generator.`
               : `Cannot resume: workflow status is "${runState.status}", not "suspended".`,
           error: `Run ${runId} is not suspended`,
-        };
+        }
       }
     } catch (err) {
-      console.warn("[resumeSubtitleGeneratorTool] Could not verify run state, proceeding anyway.");
+      console.warn(
+        "[resumeSubtitleGeneratorTool] Could not verify run state, proceeding anyway."
+      )
     }
 
     try {
-      const run = await workflow.createRun({ runId });
+      const run = await workflow.createRun({ runId })
       const result = await run.resume({
         step: normalizedStep,
         resumeData: effectiveResumeData,
-      });
+        requestContext: context.requestContext,
+      })
 
       if (result.status === "success") {
         return {
@@ -355,12 +384,13 @@ Provide the step id and resumeData required by that step.`,
           runId,
           message: "Workflow resumed and completed successfully.",
           result: result.result as z.infer<typeof subtitleResultSchema>,
-        };
+        }
       }
 
       if (result.status === "suspended") {
-        const suspendedStepKey = result.suspended?.[0]?.[0] ?? "unknown-step";
-        const suspendPayload = result.steps?.[suspendedStepKey]?.suspendPayload as any;
+        const suspendedStepKey = result.suspended?.[0]?.[0] ?? "unknown-step"
+        const suspendPayload = result.steps?.[suspendedStepKey]
+          ?.suspendPayload as any
         return {
           status: "suspended",
           workflowStatus: result.status,
@@ -368,14 +398,14 @@ Provide the step id and resumeData required by that step.`,
           message: "Workflow suspended again and awaiting user input.",
           suspendedStep: suspendedStepKey,
           suspendPayload,
-        };
+        }
       }
 
       if (result.status === "failed") {
-        const errMsg = extractWorkflowError(result);
+        const errMsg = extractWorkflowError(result)
         const lastStepId = Array.isArray(result.stepExecutionPath)
           ? result.stepExecutionPath[result.stepExecutionPath.length - 1]
-          : undefined;
+          : undefined
         return {
           status: "error",
           workflowStatus: result.status,
@@ -384,7 +414,7 @@ Provide the step id and resumeData required by that step.`,
             ? `Workflow failed after resume at step "${lastStepId}".`
             : "Workflow failed after resume.",
           error: errMsg,
-        };
+        }
       }
 
       if (result.status === "tripwire" || result.status === "paused") {
@@ -394,7 +424,7 @@ Provide the step id and resumeData required by that step.`,
           runId,
           message: `Workflow resumed but finished with status "${result.status}".`,
           error: `Workflow status ${result.status} is not handled by this tool.`,
-        };
+        }
       }
 
       return {
@@ -403,19 +433,24 @@ Provide the step id and resumeData required by that step.`,
         runId,
         message: "Workflow finished with an unexpected status after resume.",
         error: "Unexpected workflow status",
-      };
+      }
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[resumeSubtitleGeneratorTool] Error resuming workflow:", errMsg);
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error(
+        "[resumeSubtitleGeneratorTool] Error resuming workflow:",
+        errMsg
+      )
 
       if (/not suspended/i.test(errMsg)) {
         try {
-          const latest = await workflow.getWorkflowRunById(runId);
-          const latestStatus = latest?.status ?? "unknown";
+          const latest = await workflow.getWorkflowRunById(runId)
+          const latestStatus = latest?.status ?? "unknown"
           const suspendedStep =
             latestStatus === "suspended"
-              ? Object.entries((latest?.steps ?? {}) as Record<string, any>).find(([, stepData]) => stepData?.status === "suspended")?.[0]
-              : undefined;
+              ? Object.entries(
+                  (latest?.steps ?? {}) as Record<string, any>
+                ).find(([, stepData]) => stepData?.status === "suspended")?.[0]
+              : undefined
 
           return {
             status: latestStatus === "suspended" ? "suspended" : "error",
@@ -427,7 +462,7 @@ Provide the step id and resumeData required by that step.`,
                 : `Cannot resume because run is currently "${latestStatus}".`,
             suspendedStep,
             error: errMsg,
-          };
+          }
         } catch {
           // fall through to generic error response
         }
@@ -439,7 +474,7 @@ Provide the step id and resumeData required by that step.`,
         runId,
         message: `Error resuming workflow: ${errMsg}`,
         error: errMsg,
-      };
+      }
     }
   },
-});
+})

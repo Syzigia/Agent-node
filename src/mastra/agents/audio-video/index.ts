@@ -1,10 +1,9 @@
-import { Agent } from "@mastra/core/agent";
-import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
-import { s3Workspace } from "../../workspace/s3";
-import { agentMemory } from "../../memory";
-import { 
-  startSilenceCutterTool, 
-  resumeSilenceCutterTool, 
+import { Agent } from "@mastra/core/agent"
+import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors"
+import { agentMemory } from "../../memory"
+import {
+  startSilenceCutterTool,
+  resumeSilenceCutterTool,
   startSubtitleGeneratorTool,
   resumeSubtitleGeneratorTool,
   checkSubtitleStatusTool,
@@ -12,9 +11,10 @@ import {
   startSmartHighlightsV2Tool,
   resumeSmartHighlightsV2Tool,
   checkSmartHighlightsV2StatusTool,
-} from "./tools";
-import { volumeNormalizerTool } from "./tools/volume-normalizer";
-import { gpt5NanoModelId } from "../../models/azure-openai";
+} from "./tools"
+import { volumeNormalizerTool } from "./tools/volume-normalizer"
+import { gpt5NanoModelId } from "../../models/azure-openai"
+import { getWorkspace } from "../../workspace/context"
 
 export const audioVideoAgent = new Agent({
   id: "audio-video-agent",
@@ -226,7 +226,7 @@ User: "Generate subtitles for wild_project.mp4"
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights-v2 + resume-smart-highlights-v2
 - If the user wants to GENERATE SUBTITLES -> start-subtitle-generator`,
   model: gpt5NanoModelId,
-  workspace: s3Workspace,
+  workspace: ({ requestContext }) => getWorkspace({ requestContext }),
   tools: {
     startSilenceCutterTool,
     resumeSilenceCutterTool,
@@ -237,7 +237,7 @@ User: "Generate subtitles for wild_project.mp4"
     startSmartHighlightsV2Tool,
     resumeSmartHighlightsV2Tool,
     checkSmartHighlightsV2StatusTool,
-    volumeNormalizerTool
+    volumeNormalizerTool,
   },
   inputProcessors: [
     // Remove previous tool call/result pairs from context — they inflate tokens
@@ -247,4 +247,4 @@ User: "Generate subtitles for wild_project.mp4"
     new TokenLimiterProcessor(120_000),
   ],
   memory: agentMemory,
-});
+})

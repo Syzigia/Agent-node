@@ -1,44 +1,39 @@
-# dependencies (bun install)
+# dependencies
 node_modules
 
-# output
-out
+# next.js
+.next/
+out/
+
+# build
 dist
 *.tgz
 
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
+# env files
 .env
 .env.development.local
 .env.test.local
 .env.production.local
 .env.local
+.env.development
 
 # caches
 .eslintcache
 .cache
 *.tsbuildinfo
 
-# IntelliJ based IDEs
-.idea
+# mastra
+.mastra
 
-# Finder (MacOS) folder config
+# databases
+*.db
+*.db-*
+
+# misc
 .DS_Store
-output.txt 
-node_modules 
-dist 
-.mastra 
-.env.development 
-.env 
-*.db 
-*.db-* 
-.netlify 
-.vercel 
+.idea
+.netlify
+.vercel
+coverage
+*.lcov
+output.txt

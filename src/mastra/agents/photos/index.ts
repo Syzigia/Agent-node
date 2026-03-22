@@ -1,15 +1,15 @@
-import { Agent } from "@mastra/core/agent";
-import { gpt5MiniModelId } from "../../models/azure-openai";
-import { s3Workspace } from "../../workspace/s3";
-import { agentMemory } from "../../memory";
-import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector";
-import { closedEyesDetectorTool } from "./tools/closed-eyes-detector";
-import { changeGammaTool } from "./tools/change-gamma";
+import { Agent } from "@mastra/core/agent"
+import { gpt5MiniModelId } from "../../models/azure-openai"
+import { agentMemory } from "../../memory"
+import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector"
+import { closedEyesDetectorTool } from "./tools/closed-eyes-detector"
+import { changeGammaTool } from "./tools/change-gamma"
+import { getWorkspace } from "../../workspace/context"
 
 export const photosAgent = new Agent({
-    id: "photos-agent",
-    name: "Photos Agent",
-    instructions: `You are a specialist in photo editing and enhancement. Your role is to assist users in improving the quality of their photos, based on the order they give you, these are your possible actions
+  id: "photos-agent",
+  name: "Photos Agent",
+  instructions: `You are a specialist in photo editing and enhancement. Your role is to assist users in improving the quality of their photos, based on the order they give you, these are your possible actions
     
     ## 1. Blur photos detector
 
@@ -74,8 +74,8 @@ export const photosAgent = new Agent({
     3. Repeat until all files are processed
     4. Present a final combined summary to the user
     `,
-    model: gpt5MiniModelId,
-    workspace: s3Workspace,
-    tools: {blurredPhotosDetectorTool, closedEyesDetectorTool, changeGammaTool},
-    memory: agentMemory,
-});
+  model: gpt5MiniModelId,
+  workspace: ({ requestContext }) => getWorkspace({ requestContext }),
+  tools: { blurredPhotosDetectorTool, closedEyesDetectorTool, changeGammaTool },
+  memory: agentMemory,
+})

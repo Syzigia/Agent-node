@@ -1,16 +1,20 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import type { ToolExecutionContext } from "@mastra/core/tools";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import { readFile } from "fs/promises";
-import Replicate from "replicate";
-import { WORKSPACE_PATH, sanitizePath } from "../../../workspace";
+import { createTool } from "@mastra/core/tools"
+import { z } from "zod"
+import type { ToolExecutionContext } from "@mastra/core/tools"
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
+import { readFile } from "fs/promises"
+import Replicate from "replicate"
+import { sanitizePath } from "../../../workspace"
+import { extractAudio, mergeAudioVideo } from "../../../utils/ffmpeg"
 import {
-  extractAudio,
-  mergeAudioVideo,
-} from "../../../utils/ffmpeg";
+  getFilesystem,
+  createTempWorkspace,
+  ensureLocalFile,
+  uploadToS3,
+  cleanupTempWorkspace,
+} from "../../../workspace/context"
 
 /**
  * Extensions that are treated as video containers.
@@ -19,50 +23,58 @@ import {
  * always go through the audio-only code path.
  */
 const VIDEO_EXTENSIONS = new Set([
-  ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv", ".ts",
-]);
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".mkv",
+  ".webm",
+  ".flv",
+  ".ts",
+])
 
 /**
  * Replicate model version for resemble-enhance.
  * Handles both denoising and audio enhancement.
  */
 const REPLICATE_MODEL =
-  "resemble-ai/resemble-enhance:93266a7e7f5805fb79bcf213b1a4e0ef2e45aff3c06eefd96c59e850c87fd6a2" as const;
+  "resemble-ai/resemble-enhance:93266a7e7f5805fb79bcf213b1a4e0ef2e45aff3c06eefd96c59e850c87fd6a2" as const
 
 /**
  * Download the processed audio from a URL and return it as a Buffer.
  * Used as a fallback when Replicate returns a plain URL string.
  */
 async function downloadAudio(url: string): Promise<Buffer> {
-  const response = await fetch(url);
+  const response = await fetch(url)
   if (!response.ok) {
     throw new Error(
-      `Failed to download processed audio from Replicate (HTTP ${response.status}): ${url}`,
-    );
+      `Failed to download processed audio from Replicate (HTTP ${response.status}): ${url}`
+    )
   }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  const arrayBuffer = await response.arrayBuffer()
+  return Buffer.from(arrayBuffer)
 }
 
 /**
  * Read all chunks from a WHATWG ReadableStream<Uint8Array> into a Buffer.
  */
-async function readStreamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
+async function readStreamToBuffer(
+  stream: ReadableStream<Uint8Array>
+): Promise<Buffer> {
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) chunks.push(value);
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) chunks.push(value)
   }
-  const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
+  const totalLength = chunks.reduce((sum, c) => sum + c.length, 0)
+  const result = new Uint8Array(totalLength)
+  let offset = 0
   for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
+    result.set(chunk, offset)
+    offset += chunk.length
   }
-  return Buffer.from(result);
+  return Buffer.from(result)
 }
 
 /**
@@ -71,10 +83,10 @@ async function readStreamToBuffer(stream: ReadableStream<Uint8Array>): Promise<B
  * By the time this is called the file is always an .mp3 temp file.
  */
 async function fileToDataURI(filePath: string): Promise<string> {
-  const buffer = await readFile(filePath);
-  const ext = path.extname(filePath).toLowerCase();
-  const mimeType = ext === ".mp3" ? "audio/mpeg" : "audio/wav";
-  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+  const buffer = await readFile(filePath)
+  const ext = path.extname(filePath).toLowerCase()
+  const mimeType = ext === ".mp3" ? "audio/mpeg" : "audio/wav"
+  return `data:${mimeType};base64,${buffer.toString("base64")}`
 }
 
 /**
@@ -89,18 +101,18 @@ async function fileToDataURI(filePath: string): Promise<string> {
 async function enhanceAudio(audioPath: string): Promise<Buffer> {
   // The project uses REPLICATE_API_KEY; the SDK default is REPLICATE_API_TOKEN.
   // Pass the token explicitly so either variable name works.
-  const auth = process.env.REPLICATE_API_KEY ?? process.env.REPLICATE_API_TOKEN;
+  const auth = process.env.REPLICATE_API_KEY ?? process.env.REPLICATE_API_TOKEN
   if (!auth) {
     throw new Error(
-      "Replicate API key not found. Set REPLICATE_API_KEY in your .env file.",
-    );
+      "Replicate API key not found. Set REPLICATE_API_KEY in your .env file."
+    )
   }
-  const replicate = new Replicate({ auth });
+  const replicate = new Replicate({ auth })
 
-  console.log("[voiceIsolation] Building data URI from:", audioPath);
-  const audioURI = await fileToDataURI(audioPath);
+  console.log("[voiceIsolation] Building data URI from:", audioPath)
+  const audioURI = await fileToDataURI(audioPath)
 
-  console.log("[voiceIsolation] Sending to Replicate resemble-enhance...");
+  console.log("[voiceIsolation] Sending to Replicate resemble-enhance...")
   const output = await replicate.run(REPLICATE_MODEL, {
     input: {
       input_audio: audioURI,
@@ -109,16 +121,16 @@ async function enhanceAudio(audioPath: string): Promise<Buffer> {
       prior_temperature: 0.5,
       number_function_evaluations: 64,
     },
-  });
+  })
 
   // The model returns an array — grab the first element.
-  const outputArray = output as unknown[];
-  const firstOutput = Array.isArray(outputArray) ? outputArray[0] : undefined;
+  const outputArray = output as unknown[]
+  const firstOutput = Array.isArray(outputArray) ? outputArray[0] : undefined
 
   if (!firstOutput) {
     throw new Error(
-      `Unexpected output from Replicate model: ${JSON.stringify(output)}`,
-    );
+      `Unexpected output from Replicate model: ${JSON.stringify(output)}`
+    )
   }
 
   // Case 1: FileOutput / ReadableStream returned by the current Replicate SDK
@@ -127,97 +139,119 @@ async function enhanceAudio(audioPath: string): Promise<Buffer> {
     firstOutput !== null &&
     typeof (firstOutput as any).getReader === "function"
   ) {
-    console.log("[voiceIsolation] Replicate returned a ReadableStream — reading directly...");
-    return readStreamToBuffer(firstOutput as ReadableStream<Uint8Array>);
+    console.log(
+      "[voiceIsolation] Replicate returned a ReadableStream — reading directly..."
+    )
+    return readStreamToBuffer(firstOutput as ReadableStream<Uint8Array>)
   }
 
   // Case 2: Plain URL string (fallback for older SDK versions)
   if (typeof firstOutput === "string") {
-    console.log("[voiceIsolation] Replicate output URL:", firstOutput);
-    return downloadAudio(firstOutput);
+    console.log("[voiceIsolation] Replicate output URL:", firstOutput)
+    return downloadAudio(firstOutput)
   }
 
   throw new Error(
-    `Unrecognised output type from Replicate model: ${typeof firstOutput} — ${JSON.stringify(firstOutput)}`,
-  );
+    `Unrecognised output type from Replicate model: ${typeof firstOutput} — ${JSON.stringify(firstOutput)}`
+  )
 }
 
 /**
  * Process a single file: convert/extract to MP3 if needed, send to Replicate,
  * download the result, and write the final output.
  *
- * Temp files are written to os.tmpdir() and always cleaned up on
+ * Temp files are written to a temp workspace and always cleaned up on
  * success or failure so the workspace stays untouched.
  *
- * @param file    Sanitized relative path within the workspace.
- * @param index   Position in the batch — used to avoid temp-file name
- *                collisions when two files share the same basename.
+ * @param file       Sanitized relative path within the S3 workspace.
+ * @param index      Position in the batch — used to avoid temp-file name
+ *                   collisions when two files share the same basename.
+ * @param filesystem The S3 filesystem to use for reading/writing files.
  */
 async function processFile(
   file: string,
   index: number,
+  filesystem: ReturnType<typeof getFilesystem>
 ): Promise<{ output: string; originalSize: number; outputSize: number }> {
-  const inputPath = path.join(WORKSPACE_PATH, file);
-  const originalSize = fs.statSync(inputPath).size;
-  const ext = path.extname(file).toLowerCase();
-  const baseName = path.basename(file, ext);
-
-  // Unique prefix per file prevents collisions between files sharing a baseName
-  const tempPrefix = `${baseName}_${index}`;
-  const tempDir = os.tmpdir();
-  const tempAudioPath = path.join(tempDir, `${tempPrefix}_isolation_audio.mp3`);
-  const tempCleanAudioPath = path.join(tempDir, `${tempPrefix}_clean_audio.mp3`);
-
-  const isVideo = VIDEO_EXTENSIONS.has(ext);
-  console.log(`[voiceIsolation] [${index + 1}] ${file} — isVideo: ${isVideo}`);
-
-  const outputRel = isVideo
-    ? `${baseName}_isolated${ext}`
-    : `${baseName}_isolated.mp3`;
-  const outputPath = path.join(WORKSPACE_PATH, outputRel);
+  const tempDir = createTempWorkspace()
 
   try {
+    // Download file from S3
+    const { localPath: inputPath, size: originalSize } = await ensureLocalFile(
+      filesystem,
+      file,
+      tempDir
+    )
+    const ext = path.extname(file).toLowerCase()
+    const baseName = path.basename(file, ext)
+
+    // Unique prefix per file prevents collisions between files sharing a baseName
+    const tempPrefix = `${baseName}_${index}`
+    const tempAudioPath = path.join(
+      tempDir,
+      `${tempPrefix}_isolation_audio.mp3`
+    )
+    const tempCleanAudioPath = path.join(
+      tempDir,
+      `${tempPrefix}_clean_audio.mp3`
+    )
+
+    const isVideo = VIDEO_EXTENSIONS.has(ext)
+    console.log(`[voiceIsolation] [${index + 1}] ${file} — isVideo: ${isVideo}`)
+
+    const outputRel = isVideo
+      ? `${baseName}_isolated${ext}`
+      : `${baseName}_isolated.mp3`
+    const localOutputPath = path.join(tempDir, path.basename(outputRel))
+
     // ── 1. Ensure Replicate always receives an MP3 ───────────────────────────
     //   • Video          → extract audio track to temp MP3
     //   • Any audio file → always convert to temp MP3
     //     (handles malformed codecs, embedded cover art in mp3/m4a, etc.)
-    let audioSourcePath: string;
+    let audioSourcePath: string
 
     if (isVideo) {
-      console.log(`[voiceIsolation] [${index + 1}] Extracting audio from video...`);
-      await extractAudio(inputPath, tempAudioPath);
-      audioSourcePath = tempAudioPath;
+      console.log(
+        `[voiceIsolation] [${index + 1}] Extracting audio from video...`
+      )
+      await extractAudio(inputPath, tempAudioPath)
+      audioSourcePath = tempAudioPath
     } else {
-      console.log(`[voiceIsolation] [${index + 1}] Converting audio → MP3...`);
-      await extractAudio(inputPath, tempAudioPath);
-      audioSourcePath = tempAudioPath;
+      console.log(`[voiceIsolation] [${index + 1}] Converting audio → MP3...`)
+      await extractAudio(inputPath, tempAudioPath)
+      audioSourcePath = tempAudioPath
     }
 
     // ── 2. Enhance via Replicate ─────────────────────────────────────────────
-    console.log(`[voiceIsolation] [${index + 1}] Sending to Replicate...`);
-    const cleanAudioBuffer = await enhanceAudio(audioSourcePath);
+    console.log(`[voiceIsolation] [${index + 1}] Sending to Replicate...`)
+    const cleanAudioBuffer = await enhanceAudio(audioSourcePath)
 
     // ── 3. Write final output ────────────────────────────────────────────────
     if (isVideo) {
-      console.log(`[voiceIsolation] [${index + 1}] Merging clean audio back into video...`);
-      fs.writeFileSync(tempCleanAudioPath, cleanAudioBuffer);
-      await mergeAudioVideo(inputPath, tempCleanAudioPath, outputPath);
+      console.log(
+        `[voiceIsolation] [${index + 1}] Merging clean audio back into video...`
+      )
+      fs.writeFileSync(tempCleanAudioPath, cleanAudioBuffer)
+      await mergeAudioVideo(inputPath, tempCleanAudioPath, localOutputPath)
     } else {
-      fs.writeFileSync(outputPath, cleanAudioBuffer);
+      fs.writeFileSync(localOutputPath, cleanAudioBuffer)
     }
 
-    const outputSize = fs.statSync(outputPath).size;
-    console.log(`[voiceIsolation] [${index + 1}] Done → ${outputRel} (${outputSize} bytes)`);
+    // Upload to S3
+    await uploadToS3(filesystem, localOutputPath, outputRel)
 
-    return { output: outputRel, originalSize, outputSize };
+    // Get size of uploaded file
+    const outputContent = await filesystem.readFile(outputRel)
+    const outputSize = outputContent.length
 
+    console.log(
+      `[voiceIsolation] [${index + 1}] Done → ${outputRel} (${outputSize} bytes)`
+    )
+
+    return { output: outputRel, originalSize, outputSize }
   } finally {
-    // Always clean up temp files regardless of success or failure
-    for (const p of [tempAudioPath, tempCleanAudioPath]) {
-      if (fs.existsSync(p)) {
-        try { fs.unlinkSync(p); } catch { /* ignore */ }
-      }
-    }
+    // Always clean up temp workspace
+    cleanupTempWorkspace(tempDir)
   }
 }
 
@@ -261,11 +295,13 @@ Examples:
       .array(z.string())
       .min(1)
       .describe(
-        "Array of relative paths within the workspace to the audio or video files to enhance (e.g. ['podcast.mp3', 'clips/interview.mp4'])",
+        "Array of relative paths within the workspace to the audio or video files to enhance (e.g. ['podcast.mp3', 'clips/interview.mp4'])"
       ),
   }),
   outputSchema: z.object({
-    success: z.boolean().describe("True if at least one file was processed successfully"),
+    success: z
+      .boolean()
+      .describe("True if at least one file was processed successfully"),
     processed: z.number().describe("Number of files successfully enhanced"),
     failed: z.number().describe("Number of files that failed"),
     results: z.array(
@@ -274,58 +310,64 @@ Examples:
         output: z.string().describe("Output file path in the workspace"),
         originalSize: z.number().describe("Input file size in bytes"),
         outputSize: z.number().describe("Output file size in bytes"),
-      }),
+      })
     ),
     errors: z.array(
       z.object({
         file: z.string().describe("Input file path that failed"),
         error: z.string().describe("Error message"),
-      }),
+      })
     ),
   }),
-  execute: async (inputData, _context: ToolExecutionContext) => {
+  execute: async (inputData, context: ToolExecutionContext) => {
+    const filesystem = getFilesystem(context)
     const results: Array<{
-      file: string;
-      output: string;
-      originalSize: number;
-      outputSize: number;
-    }> = [];
-    const errors: Array<{ file: string; error: string }> = [];
+      file: string
+      output: string
+      originalSize: number
+      outputSize: number
+    }> = []
+    const errors: Array<{ file: string; error: string }> = []
 
-    console.log(`[voiceIsolation] Starting batch of ${inputData.files.length} file(s)...`);
+    console.log(
+      `[voiceIsolation] Starting batch of ${inputData.files.length} file(s)...`
+    )
 
     for (let i = 0; i < inputData.files.length; i++) {
-      const rawFile = inputData.files[i]!;
-      let file: string;
+      const rawFile = inputData.files[i]!
+      let file: string
 
       // ── Sanitize path ──────────────────────────────────────────────────────
       try {
-        file = sanitizePath(rawFile);
+        file = sanitizePath(rawFile)
       } catch (err: any) {
-        errors.push({ file: rawFile, error: err.message });
-        continue;
+        errors.push({ file: rawFile, error: err.message })
+        continue
       }
 
-      // ── Verify file exists ─────────────────────────────────────────────────
-      const inputPath = path.join(WORKSPACE_PATH, file);
-      if (!fs.existsSync(inputPath)) {
-        errors.push({ file, error: "File not found in workspace" });
-        continue;
+      // ── Verify file exists in S3 ───────────────────────────────────────────
+      const exists = await filesystem.exists(file)
+      if (!exists) {
+        errors.push({ file, error: "File not found in workspace" })
+        continue
       }
 
       // ── Process ────────────────────────────────────────────────────────────
       try {
-        const result = await processFile(file, i);
-        results.push({ file, ...result });
+        const result = await processFile(file, i, filesystem)
+        results.push({ file, ...result })
       } catch (err: any) {
-        console.error(`[voiceIsolation] [${i + 1}] FAILED: ${file} —`, err.message);
-        errors.push({ file, error: err.message });
+        console.error(
+          `[voiceIsolation] [${i + 1}] FAILED: ${file} —`,
+          err.message
+        )
+        errors.push({ file, error: err.message })
       }
     }
 
     console.log(
-      `[voiceIsolation] Batch complete — ${results.length} succeeded, ${errors.length} failed.`,
-    );
+      `[voiceIsolation] Batch complete — ${results.length} succeeded, ${errors.length} failed.`
+    )
 
     return {
       success: results.length > 0,
@@ -333,6 +375,6 @@ Examples:
       failed: errors.length,
       results,
       errors,
-    };
+    }
   },
-});
+})

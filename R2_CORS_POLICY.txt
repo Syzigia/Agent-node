@@ -1,0 +1,25 @@
+Cloudflare R2 CORS policy for direct browser uploads (presigned PUT)
+
+Where to set it:
+Cloudflare Dashboard -> R2 -> your bucket -> Settings -> CORS Policy -> Add CORS policy
+
+Use this JSON (replace the example domains with yours):
+
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://your-project.vercel.app",
+      "https://your-custom-domain.com"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+
+Notes:
+- Origins must be exact (scheme + host + optional port), no path, no trailing slash.
+- After saving, wait around 30 seconds for propagation.
+- If upload still fails, open browser DevTools -> Network and check the OPTIONS/PUT request to R2.

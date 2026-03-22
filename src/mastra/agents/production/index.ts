@@ -1,9 +1,9 @@
-import { Agent } from "@mastra/core/agent";
-import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
-import { s3Workspace } from "../../workspace/s3";
-import { agentMemory } from "../../memory";
-import { convertToWebpTool } from "./tools";
-import { gpt5NanoModelId } from "../../models/azure-openai";
+import { Agent } from "@mastra/core/agent"
+import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors"
+import { agentMemory } from "../../memory"
+import { convertToWebpTool } from "./tools"
+import { gpt5NanoModelId } from "../../models/azure-openai"
+import { getWorkspace } from "../../workspace/context"
 
 export const productionAgent = new Agent({
   id: "production-agent",
@@ -28,11 +28,8 @@ When the user asks to convert:
 - "all PNGs" → list, filter .png files, pass to the array
 - a specific file → pass it directly in the array`,
   model: gpt5NanoModelId,
-  workspace: s3Workspace,
+  workspace: ({ requestContext }) => getWorkspace({ requestContext }),
   tools: { convertToWebpTool },
-  inputProcessors: [
-    new ToolCallFilter(),
-    new TokenLimiterProcessor(120_000),
-  ],
+  inputProcessors: [new ToolCallFilter(), new TokenLimiterProcessor(120_000)],
   memory: agentMemory,
-});
+})

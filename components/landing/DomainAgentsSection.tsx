@@ -1,0 +1,671 @@
+"use client"
+
+import { useRef } from "react"
+import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { useGSAP } from "@gsap/react"
+
+gsap.registerPlugin(ScrollTrigger)
+
+// Video Agent Component
+function VideoAgentVisual() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const timelineRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(
+    () => {
+      // Timeline animation
+      gsap.fromTo(
+        ".video-timeline-track",
+        { scaleX: 0 },
+        {
+          scaleX: 1,
+          duration: 1.5,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 70%",
+            toggleActions: "play none none none",
+          },
+        }
+      )
+
+      // Playheads stagger animation
+      gsap.fromTo(
+        ".video-playhead",
+        { scale: 0, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "back.out(2)",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 65%",
+            toggleActions: "play none none none",
+          },
+        }
+      )
+
+      // Waveform animation
+      gsap.to(".video-waveform-bar", {
+        height: () => 15 + Math.random() * 25,
+        duration: 0.4,
+        stagger: {
+          each: 0.02,
+          from: "center",
+          repeat: -1,
+          yoyo: true,
+        },
+        ease: "sine.inOut",
+      })
+
+      // Processing indicator
+      gsap.to(".video-processing-dot", {
+        x: 280,
+        duration: 3,
+        repeat: -1,
+        ease: "none",
+      })
+    },
+    { scope: containerRef }
+  )
+
+  return (
+    <div ref={containerRef} className="agent-visual video-agent-visual">
+      {/* Timeline Container */}
+      <div className="video-timeline-container">
+        {/* Video Preview Window */}
+        <div className="video-preview-window">
+          <div className="video-preview-content">
+            <div className="video-frame-grid">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="video-frame"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="video-timecode">00:04:23:15</div>
+        </div>
+
+        {/* Timeline Track */}
+        <div ref={timelineRef} className="video-timeline-track">
+          {/* Audio Waveform */}
+          <div className="video-waveform">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <div
+                key={i}
+                className="video-waveform-bar"
+                style={{ height: `${10 + Math.random() * 20}px` }}
+              />
+            ))}
+          </div>
+
+          {/* Playheads */}
+          <div className="video-playhead playhead-1">
+            <div className="playhead-line" />
+            <div className="playhead-handle">▶</div>
+          </div>
+          <div className="video-playhead playhead-2">
+            <div className="playhead-line" />
+            <div className="playhead-handle">◀</div>
+          </div>
+
+          {/* Processing Indicator */}
+          <div className="video-processing-indicator">
+            <span className="video-processing-label">Procesando</span>
+            <div className="video-processing-track">
+              <div className="video-processing-dot" />
+            </div>
+          </div>
+        </div>
+
+        {/* Tool Icons */}
+        <div className="video-tools-row">
+          <div className="video-tool-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M12 3v18M3 12h18M8 8l8 8M16 8l-8 8" />
+            </svg>
+            <span>Limpieza de audio</span>
+          </div>
+          <div className="video-tool-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M9 10l3-3 3 3M9 14l3 3 3-3" />
+            </svg>
+            <span>Detección de momentos</span>
+          </div>
+          <div className="video-tool-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M7 8h10M7 12h10M7 16h10" />
+            </svg>
+            <span>Subtítulos auto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Production Agent Component
+function ProductionAgentVisual() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(
+    () => {
+      // Assembly animation
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 70%",
+          toggleActions: "play none none none",
+        },
+      })
+
+      // Parts fly in
+      tl.fromTo(
+        ".production-part",
+        {
+          x: () => (Math.random() - 0.5) * 200,
+          y: () => (Math.random() - 0.5) * 200,
+          rotation: () => (Math.random() - 0.5) * 180,
+          opacity: 0,
+          scale: 0,
+        },
+        {
+          x: 0,
+          y: 0,
+          rotation: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: "power3.out",
+        }
+      )
+
+      // Assembly glow
+      tl.to(
+        ".production-assembly",
+        {
+          boxShadow: "0 0 40px rgba(0, 229, 160, 0.4)",
+          duration: 0.5,
+        },
+        "-=0.3"
+      )
+
+      // Gear rotation
+      gsap.to(".production-gear", {
+        rotation: 360,
+        duration: 8,
+        repeat: -1,
+        ease: "none",
+      })
+
+      // Conveyor belt
+      gsap.to(".production-conveyor-item", {
+        x: 200,
+        duration: 2,
+        stagger: {
+          each: 0.5,
+          repeat: -1,
+        },
+        ease: "none",
+      })
+    },
+    { scope: containerRef }
+  )
+
+  return (
+    <div ref={containerRef} className="agent-visual production-agent-visual">
+      {/* Assembly Grid */}
+      <div className="production-assembly-container">
+        <div className="production-assembly">
+          {/* Central Asset */}
+          <div className="production-central-asset">
+            <div className="asset-preview">
+              <div className="asset-layers">
+                <div className="asset-layer layer-1" />
+                <div className="asset-layer layer-2" />
+                <div className="asset-layer layer-3" />
+              </div>
+            </div>
+          </div>
+
+          {/* Orbital Parts */}
+          <div className="production-part part-vector">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#00e5a0"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2v20M2 12h20" />
+            </svg>
+          </div>
+          <div className="production-part part-enhance">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#00e5a0"
+              strokeWidth="1.5"
+            >
+              <path d="M12 3l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z" />
+            </svg>
+          </div>
+          <div className="production-part part-mockup">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#00e5a0"
+              strokeWidth="1.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18" />
+            </svg>
+          </div>
+          <div className="production-part part-convert">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#00e5a0"
+              strokeWidth="1.5"
+            >
+              <path d="M4 4v16M20 4v16M4 12h16" />
+            </svg>
+          </div>
+
+          {/* Gears */}
+          <div className="production-gear gear-1">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" />
+            </svg>
+          </div>
+          <div className="production-gear gear-2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Conveyor Belt */}
+        <div className="production-conveyor">
+          <div className="conveyor-track">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="production-conveyor-item">
+                <div className="conveyor-icon">
+                  {i === 0 && "AI"}
+                  {i === 1 && "PSD"}
+                  {i === 2 && "SVG"}
+                  {i === 3 && "PDF"}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="conveyor-arrow">→</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Photo Agent Component
+function PhotoAgentVisual() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(
+    () => {
+      // Gallery entrance
+      gsap.fromTo(
+        ".photo-gallery-item",
+        {
+          y: 60,
+          opacity: 0,
+          rotationY: -30,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          rotationY: 0,
+          duration: 0.8,
+          stagger: {
+            each: 0.1,
+            from: "center",
+          },
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 70%",
+            toggleActions: "play none none none",
+          },
+        }
+      )
+
+      // Bad photos fade out
+      gsap.to(".photo-bad", {
+        opacity: 0.15,
+        filter: "grayscale(100%)",
+        duration: 1,
+        delay: 1,
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 60%",
+          toggleActions: "play none none none",
+        },
+      })
+
+      // Good photos glow
+      gsap.to(".photo-good", {
+        boxShadow: "0 0 30px rgba(0, 229, 160, 0.5)",
+        duration: 0.8,
+        delay: 1.2,
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 60%",
+          toggleActions: "play none none none",
+        },
+      })
+
+      // Adjustment wave
+      gsap.to(".photo-adjustment-bar", {
+        width: "100%",
+        duration: 1.5,
+        stagger: 0.2,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 50%",
+          toggleActions: "play none none none",
+        },
+      })
+
+      // Floating animation for gallery
+      gsap.to(".photo-gallery-item", {
+        y: "+=8",
+        duration: 2,
+        stagger: {
+          each: 0.2,
+          from: "random",
+          repeat: -1,
+          yoyo: true,
+        },
+        ease: "sine.inOut",
+      })
+    },
+    { scope: containerRef }
+  )
+
+  const photos = [
+    { id: 1, status: "good", label: "Aprobada" },
+    { id: 2, status: "bad", label: "Descarte" },
+    { id: 3, status: "good", label: "Aprobada" },
+    { id: 4, status: "good", label: "Aprobada" },
+    { id: 5, status: "bad", label: "Descarte" },
+    { id: 6, status: "good", label: "Aprobada" },
+  ]
+
+  return (
+    <div ref={containerRef} className="agent-visual photo-agent-visual">
+      {/* Photo Gallery Grid */}
+      <div className="photo-gallery-container">
+        <div className="photo-gallery-grid">
+          {photos.map((photo, i) => (
+            <div
+              key={photo.id}
+              className={`photo-gallery-item photo-${photo.status}`}
+              style={{ animationDelay: `${i * 0.1}s` }}
+            >
+              <div className="photo-thumbnail">
+                <div className="photo-content">
+                  <div className="photo-landscape">
+                    <div className="photo-mountain" />
+                    <div className="photo-sun" />
+                  </div>
+                </div>
+                <div className="photo-label">{photo.label}</div>
+                <div className="photo-badge">
+                  {photo.status === "good" ? "✓" : "✕"}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Adjustment Panel */}
+        <div className="photo-adjustments">
+          <div className="photo-adjustment-item">
+            <span className="adjustment-name">Exposición</span>
+            <div className="adjustment-bar-container">
+              <div className="photo-adjustment-bar" style={{ width: "0%" }} />
+            </div>
+            <span className="adjustment-value">+0.8</span>
+          </div>
+          <div className="photo-adjustment-item">
+            <span className="adjustment-name">Color</span>
+            <div className="adjustment-bar-container">
+              <div className="photo-adjustment-bar" style={{ width: "0%" }} />
+            </div>
+            <span className="adjustment-value">+15</span>
+          </div>
+          <div className="photo-adjustment-item">
+            <span className="adjustment-name">Nitidez</span>
+            <div className="adjustment-bar-container">
+              <div className="photo-adjustment-bar" style={{ width: "0%" }} />
+            </div>
+            <span className="adjustment-value">+25</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="photo-stats">
+          <div className="photo-stat">
+            <span className="stat-number">247</span>
+            <span className="stat-label">Fotos procesadas</span>
+          </div>
+          <div className="photo-stat">
+            <span className="stat-number">23</span>
+            <span className="stat-label">Descartadas</span>
+          </div>
+          <div className="photo-stat">
+            <span className="stat-number">4m</span>
+            <span className="stat-label">Tiempo ahorrado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main Section Component
+export default function DomainAgentsSection() {
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(
+    () => {
+      // Header animation
+      gsap.fromTo(
+        ".domain-header-title",
+        { y: 50, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+          },
+        }
+      )
+
+      gsap.fromTo(
+        ".domain-header-subtitle",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          delay: 0.2,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+          },
+        }
+      )
+
+      // Agent cards animation
+      gsap.utils
+        .toArray<HTMLElement>(".domain-agent-card")
+        .forEach((card, i) => {
+          gsap.fromTo(
+            card,
+            {
+              x: i % 2 === 0 ? -80 : 80,
+              opacity: 0,
+            },
+            {
+              x: 0,
+              opacity: 1,
+              duration: 1,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: card,
+                start: "top 75%",
+                toggleActions: "play none none none",
+              },
+            }
+          )
+        })
+    },
+    { scope: sectionRef }
+  )
+
+  const agents = [
+    {
+      id: "01",
+      title: "Video Agent",
+      subtitle: "El Editor Cósmico",
+      description:
+        "Procesa audio, detecta momentos clave, genera subtítulos y corta silencios automáticamente. Tu flujo de edición, acelerado a velocidad warp.",
+      tools: [
+        "Limpieza de audio",
+        "Detección de momentos",
+        "Subtítulos automáticos",
+        "Corte de silencios",
+      ],
+      visual: VideoAgentVisual,
+    },
+    {
+      id: "02",
+      title: "Production Agent",
+      subtitle: "El Ingeniero Estelar",
+      description:
+        "Vectorización, mejora de imagen, remoción de fondos y generación de mockups. Transforma assets con precisión de máquina.",
+      tools: [
+        "Vectorización",
+        "Mejora de imagen",
+        "Remoción de fondos",
+        "Mockups automáticos",
+      ],
+      visual: ProductionAgentVisual,
+    },
+    {
+      id: "03",
+      title: "Photo Agent",
+      subtitle: "El Curador de Galaxias",
+      description:
+        "Filtrado inteligente, corrección en lote con parámetros explícitos y extracción de presets. Tu flujo fotográfico, optimizado.",
+      tools: [
+        "Filtrado de calidad",
+        "Corrección en lote",
+        "Extracción de presets",
+        "Organización",
+      ],
+      visual: PhotoAgentVisual,
+    },
+  ]
+
+  return (
+    <section ref={sectionRef} className="domain-agents-section">
+      {/* Header */}
+      <div ref={headerRef} className="domain-header">
+        <h2 className="domain-header-title">
+          Los Constructores del Universo Creativo
+        </h2>
+        <p className="domain-header-subtitle">
+          Nueve Domain Agents especializados. Sesenta y ocho herramientas.
+          <br />
+          Un ecosistema completo para profesionales creativos.
+        </p>
+      </div>
+
+      {/* Agents */}
+      <div className="domain-agents-container">
+        {agents.map((agent, index) => {
+          const VisualComponent = agent.visual
+          return (
+            <div
+              key={agent.id}
+              className={`domain-agent-card ${index % 2 === 1 ? "reverse" : ""}`}
+            >
+              <div className="domain-agent-content">
+                <div className="domain-agent-meta">
+                  <span className="domain-agent-number">{agent.id}</span>
+                  <span className="domain-agent-divider" />
+                </div>
+                <h3 className="domain-agent-title">{agent.title}</h3>
+                <p className="domain-agent-subtitle">{agent.subtitle}</p>
+                <p className="domain-agent-description">{agent.description}</p>
+                <div className="domain-agent-tools">
+                  {agent.tools.map((tool, i) => (
+                    <span key={i} className="domain-tool-tag">
+                      {tool}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="domain-agent-visual-wrapper">
+                <VisualComponent />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}

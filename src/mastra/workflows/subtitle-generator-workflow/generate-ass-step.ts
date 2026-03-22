@@ -1,23 +1,30 @@
-import { createStep } from "@mastra/core/workflows";
-import * as fs from "fs";
-import * as path from "path";
-import z from "zod";
+import { createStep } from "@mastra/core/workflows"
+import * as fs from "fs"
+import * as path from "path"
+import z from "zod"
 
-import { getVideoDimensions, hasVideoStream } from "../../utils/ffmpeg";
-import { sanitizePath, WORKSPACE_PATH } from "../../workspace";
-import { buildTikTokAss } from "./tiktok-ass";
+import { getVideoDimensions, hasVideoStream } from "../../utils/ffmpeg"
+import { sanitizePath } from "../../workspace"
+import {
+  getFilesystem,
+  createTempWorkspace,
+  ensureLocalFile,
+  uploadToS3,
+  cleanupTempWorkspace,
+} from "../../workspace/context"
+import { buildTikTokAss } from "./tiktok-ass"
 
 const assWordSchema = z.object({
   word: z.string(),
   start: z.number(),
   end: z.number(),
-});
+})
 
 const assSegmentSchema = z.object({
   text: z.string(),
   start: z.number(),
   end: z.number(),
-});
+})
 
 export const generateAssStep = createStep({
   id: "generate-ass-step",
@@ -28,6 +35,7 @@ export const generateAssStep = createStep({
     fullText: z.string(),
     language: z.string(),
     chunksProcessed: z.number(),
+    sourceFilePath: z.string(),
   }),
   outputSchema: z.object({
     words: z.array(assWordSchema),
@@ -35,48 +43,67 @@ export const generateAssStep = createStep({
     fullText: z.string(),
     language: z.string(),
     chunksProcessed: z.number(),
+    sourceFilePath: z.string(),
     assPath: z.string(),
     assLines: z.number(),
   }),
-  execute: async ({ inputData, getInitData }) => {
-    const initData = getInitData() as { filePath?: unknown } | undefined;
-    const rawFilePath = typeof initData?.filePath === "string" ? initData.filePath : "subtitles.ass";
-    const relPath = sanitizePath(rawFilePath);
-    const parsed = path.parse(relPath);
-    const subtitleDirRel = "subtitle_file";
-    const assRel = path.join(subtitleDirRel, `${parsed.name}.ass`);
-    const assAbs = path.join(WORKSPACE_PATH, assRel);
+  execute: async ({ inputData, requestContext }) => {
+    const filesystem = getFilesystem({ requestContext })
+    const tempDir = createTempWorkspace()
 
-    const sourceAbsPath = path.join(WORKSPACE_PATH, relPath);
-    const videoMeta = await hasVideoStream(sourceAbsPath)
-      .then(async (isVideo) => {
-        if (!isVideo) return { width: 1080, height: 1920 };
-        const dims = await getVideoDimensions(sourceAbsPath);
-        return dims;
+    try {
+      const rawFilePath = inputData.sourceFilePath
+      const relPath = sanitizePath(rawFilePath)
+      const parsed = path.parse(relPath)
+      const subtitleDirRel = "subtitle_file"
+      const assRel = path.join(subtitleDirRel, `${parsed.name}.ass`)
+      const assLocalPath = path.join(tempDir, `${parsed.name}.ass`)
+
+      // Get video dimensions from source file (downloaded to temp)
+      const { localPath: sourceLocalPath } = await ensureLocalFile(
+        filesystem,
+        relPath,
+        tempDir
+      )
+      const videoMeta = await hasVideoStream(sourceLocalPath)
+        .then(async (isVideo) => {
+          if (!isVideo) return { width: 1080, height: 1920 }
+          const dims = await getVideoDimensions(sourceLocalPath)
+          return dims
+        })
+        .catch(() => ({ width: 1080, height: 1920 }))
+
+      const { assContent, assLines } = buildTikTokAss({
+        title: parsed.name || "Subtitles",
+        words: inputData.words,
+        textCase: "original",
+        layoutMode: "two-lines",
+        animationPreset: "tiktok-pop",
+        videoWidth: videoMeta.width,
+        videoHeight: videoMeta.height,
       })
-      .catch(() => ({ width: 1080, height: 1920 }));
 
-    const { assContent, assLines } = buildTikTokAss({
-      title: parsed.name || "Subtitles",
-      words: inputData.words,
-      textCase: "original",
-      layoutMode: "two-lines",
-      animationPreset: "tiktok-pop",
-      videoWidth: videoMeta.width,
-      videoHeight: videoMeta.height,
-    });
+      // Ensure directory exists locally
+      const assDir = path.dirname(assLocalPath)
+      if (!fs.existsSync(assDir)) {
+        fs.mkdirSync(assDir, { recursive: true })
+      }
+      fs.writeFileSync(assLocalPath, assContent, "utf8")
 
-    if (!fs.existsSync(path.dirname(assAbs))) {
-      fs.mkdirSync(path.dirname(assAbs), { recursive: true });
+      // Upload to S3
+      await uploadToS3(filesystem, assLocalPath, assRel)
+
+      console.log(
+        `[generate-ass-step] Wrote ${assLines} lines to S3: ${assRel}`
+      )
+
+      return {
+        ...inputData,
+        assPath: assRel,
+        assLines,
+      }
+    } finally {
+      cleanupTempWorkspace(tempDir)
     }
-    fs.writeFileSync(assAbs, assContent, "utf8");
-
-    console.log(`[generate-ass-step] Wrote ${assLines} lines to ${assAbs}`);
-
-    return {
-      ...inputData,
-      assPath: assRel,
-      assLines,
-    };
   },
-});
+})
