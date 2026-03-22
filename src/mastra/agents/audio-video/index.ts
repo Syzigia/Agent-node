@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
-import { workspace } from "../../workspace";
+import { s3Workspace } from "../../workspace/s3";
 import { agentMemory } from "../../memory";
 import { 
   startSilenceCutterTool, 
@@ -226,7 +226,7 @@ User: "Generate subtitles for wild_project.mp4"
 - If the user wants to EXTRACT highlights/best moments -> start-smart-highlights-v2 + resume-smart-highlights-v2
 - If the user wants to GENERATE SUBTITLES -> start-subtitle-generator`,
   model: gpt5NanoModelId,
-  workspace,
+  workspace: s3Workspace,
   tools: {
     startSilenceCutterTool,
     resumeSilenceCutterTool,

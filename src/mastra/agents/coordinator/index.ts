@@ -4,6 +4,7 @@ import { coordinatorMemory } from "../../memory";
 import { productionAgent } from "../production";
 import { audioVideoAgent } from "../audio-video";
 import { gpt53ChatModelId } from "../../models/azure-openai";
+import { photosAgent } from "../photos";
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -17,7 +18,12 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 ### production-agent
 - Explore workspace files (list, search)
 - Convert images to WebP
-- Any task related to image files
+
+### photos-agent
+- Detect blurry or out-of-focus photos
+- Filter, classify or analyze photo quality
+- Adjust gamma/brightness of photos (change-gamma tool with options: apple, srgb, broadcast - saves to gamma_correction folder)
+- Any task related to photo quality or enhancement
 
 ### audio-video-agent
 - Process audio or video
@@ -39,16 +45,12 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 3. **runId**: The audio-video-agent returns a runId when starting workflows.
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
   model: gpt53ChatModelId,
-  agents: { productionAgent, audioVideoAgent },
+  agents: { productionAgent, audioVideoAgent, photosAgent },
   inputProcessors: [
     new TokenLimiterProcessor(120_000),
   ],
   defaultOptions: {
     delegation: {
-      // Limit context forwarded to sub-agents: only pass the last 10 messages
-      // and strip tool-invocation parts. Sub-agents don't need the full parent
-      // conversation history — they receive a self-contained prompt from the
-      // coordinator. Less context = faster Azure responses.
       messageFilter: ({ messages }) => {
         return messages
           .filter(m => {

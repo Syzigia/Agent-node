@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { ToolCallFilter, TokenLimiterProcessor } from "@mastra/core/processors";
-import { workspace } from "../../workspace";
+import { s3Workspace } from "../../workspace/s3";
 import { agentMemory } from "../../memory";
 import { convertToWebpTool } from "./tools";
 import { gpt5NanoModelId } from "../../models/azure-openai";
@@ -28,7 +28,7 @@ When the user asks to convert:
 - "all PNGs" → list, filter .png files, pass to the array
 - a specific file → pass it directly in the array`,
   model: gpt5NanoModelId,
-  workspace,
+  workspace: s3Workspace,
   tools: { convertToWebpTool },
   inputProcessors: [
     new ToolCallFilter(),

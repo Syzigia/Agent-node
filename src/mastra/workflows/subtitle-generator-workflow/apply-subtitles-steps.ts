@@ -154,8 +154,8 @@ function buildSubtitleForceStyle(
   safeAreaBottomPercent: number,
 ): string {
   const presetConfig = stylePresetMap[preset];
-  const primaryColour = assColorFromHex(baseColor);
-  const secondaryColour = assColorFromHex(highlightColor);
+  const primaryColour = assColorFromHex(highlightColor);
+  const secondaryColour = assColorFromHex(baseColor);
   const metrics = resolveDynamicStyleMetrics(preset, videoWidth, videoHeight);
   const isVertical = videoHeight > videoWidth;
   const marginH = isVertical ? 42 : 60;
