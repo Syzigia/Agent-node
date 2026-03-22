@@ -1,14 +1,18 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import { toAISdkStream } from "@mastra/ai-sdk"
 import { getUserId } from "@/lib/auth"
-import { mastra, createProjectContext } from "@/lib/mastra"
+import { createProjectContext, getMastraInstance } from "@/lib/mastra"
 import { getChat } from "@/src/mastra/db"
 import { NextResponse } from "next/server"
 
 export const maxDuration = 300
 
 const deploymentProfile = process.env.DEPLOYMENT_PROFILE ?? "full"
-const webLiteOnlyAgents = new Set(["coordinatorAgent", "productionAgent"])
+const webLiteOnlyAgents = new Set([
+  "coordinatorAgent",
+  "productionAgent",
+  "photosAgent",
+])
 
 export async function POST(req: Request) {
   const userId = await getUserId()
@@ -23,13 +27,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "This agent is disabled in web-lite deployment. Available: coordinatorAgent, productionAgent.",
+          "This agent is disabled in web-lite deployment. Available: coordinatorAgent, productionAgent, photosAgent.",
       },
       { status: 400 }
     )
   }
 
-  const mastraInstance = mastra as any
+  const mastraInstance = (await getMastraInstance()) as any
   const agent = mastraInstance.getAgent(agentId)
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 })

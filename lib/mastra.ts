@@ -1,5 +1,3 @@
-import { mastra } from "@/src/mastra"
-import { mastraWeb } from "@/src/mastra/index-web"
 import { getProject } from "@/src/mastra/db"
 import { createRequestContext } from "@/src/mastra/workspace/context"
 
@@ -21,7 +19,22 @@ export async function createProjectContext(userId: string, projectId: string) {
   return { project, requestContext }
 }
 
-const deploymentProfile = process.env.DEPLOYMENT_PROFILE ?? "full"
-const selectedMastra = deploymentProfile === "web-lite" ? mastraWeb : mastra
+let cachedMastra: any = null
 
-export { selectedMastra as mastra }
+export async function getMastraInstance() {
+  if (cachedMastra) {
+    return cachedMastra
+  }
+
+  const deploymentProfile = process.env.DEPLOYMENT_PROFILE ?? "full"
+
+  if (deploymentProfile === "web-lite") {
+    const mod = await import("@/src/mastra/index-web")
+    cachedMastra = mod.mastraWeb
+    return cachedMastra
+  }
+
+  const mod = await import("@/src/mastra")
+  cachedMastra = mod.mastra
+  return cachedMastra
+}

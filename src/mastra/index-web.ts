@@ -2,6 +2,7 @@ import { Mastra } from "@mastra/core"
 
 import { coordinatorWebAgent } from "./agents/coordinator/index-web"
 import { productionAgent } from "./agents/production"
+import { photosWebAgent } from "./agents/photos/index-web"
 import { sharedStore } from "./memory"
 import { MultiResourceAzureGateway } from "./models/multi-resource-azure-gateway"
 import {
@@ -27,6 +28,7 @@ export const mastraWeb = new Mastra({
   agents: {
     coordinatorAgent: coordinatorWebAgent,
     productionAgent,
+    photosAgent: photosWebAgent,
   },
   gateways: {
     azureOpenAI: new MultiResourceAzureGateway({
