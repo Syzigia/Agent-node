@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
+import { LibSQLStore } from "@mastra/libsql"
 
 import { getUserId } from "@/lib/auth"
-import { mastra } from "@/lib/mastra"
 import { getChat, getProject } from "@/src/mastra/db"
+
+const databaseUrl = process.env.DATABASE_URL
+const databaseToken = process.env.DATABASE_TOKEN
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL environment variable is required")
+}
 
 export async function GET(
   _req: NextRequest,
@@ -25,12 +32,13 @@ export async function GET(
   }
 
   try {
-    const storage = mastra.getStorage()
-    if (!storage) {
-      return NextResponse.json({ messages: [] })
-    }
+    const store = new LibSQLStore({
+      id: "chat-history-store",
+      url: databaseUrl!,
+      authToken: databaseToken,
+    })
 
-    const memoryStore = await storage.getStore("memory")
+    const memoryStore = await store.getStore("memory")
     if (!memoryStore) {
       return NextResponse.json({ messages: [] })
     }

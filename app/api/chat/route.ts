@@ -7,6 +7,9 @@ import { NextResponse } from "next/server"
 
 export const maxDuration = 300
 
+const deploymentProfile = process.env.DEPLOYMENT_PROFILE ?? "full"
+const webLiteOnlyAgents = new Set(["coordinatorAgent", "productionAgent"])
+
 export async function POST(req: Request) {
   const userId = await getUserId()
   const body = await req.json()
@@ -16,7 +19,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "agentId is required" }, { status: 400 })
   }
 
-  const agent = mastra.getAgent(agentId)
+  if (deploymentProfile === "web-lite" && !webLiteOnlyAgents.has(agentId)) {
+    return NextResponse.json(
+      {
+        error:
+          "This agent is disabled in web-lite deployment. Available: coordinatorAgent, productionAgent.",
+      },
+      { status: 400 }
+    )
+  }
+
+  const mastraInstance = mastra as any
+  const agent = mastraInstance.getAgent(agentId)
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 })
   }
