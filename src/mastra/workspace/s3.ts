@@ -67,6 +67,7 @@ class PatchedS3Filesystem extends S3Filesystem {
   }
 }
 
+/** Default filesystem using S3_PREFIX env var (for local dev / Mastra Studio) */
 export const s3Filesystem = new PatchedS3Filesystem({
   bucket: s3Bucket,
   region: s3Region,
@@ -76,6 +77,23 @@ export const s3Filesystem = new PatchedS3Filesystem({
   prefix: s3Prefix || undefined,
 });
 
+/** Default workspace using S3_PREFIX env var (for local dev / Mastra Studio) */
 export const s3Workspace = new Workspace({
   filesystem: s3Filesystem,
 });
+
+/** Creates a project-scoped S3 filesystem and workspace for a given prefix */
+export function createProjectWorkspace(prefix: string) {
+  const filesystem = new PatchedS3Filesystem({
+    bucket: s3Bucket!,
+    region: s3Region,
+    endpoint: s3Endpoint!,
+    accessKeyId: s3AccessKeyId!,
+    secretAccessKey: s3SecretAccessKey!,
+    prefix,
+  });
+  return {
+    filesystem,
+    workspace: new Workspace({ filesystem }),
+  };
+}

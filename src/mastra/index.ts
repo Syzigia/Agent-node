@@ -1,4 +1,5 @@
 import { Mastra } from "@mastra/core";
+import { MastraAuthClerk } from "@mastra/auth-clerk";
 import { productionAgent } from "./agents/production";
 import { audioVideoAgent } from "./agents/audio-video";
 import { clipSelectorMultimodalAgent } from "./agents/audio-video/clip-selector-multimodal";
@@ -18,6 +19,7 @@ import {
   normalizedAzureDirectBaseUrl,
 } from "./models/azure-openai";
 import { photosAgent } from "./agents/photos";
+import { apiRoutes } from "./server/routes";
 
 const directOverrides = normalizedAzureDirectBaseUrl
   ? {
@@ -40,6 +42,14 @@ export const mastra = new Mastra({
       overrides: directOverrides,
     }),
   },
-  // Shared storage instance — required for workflow state persistence between start and resume
   storage: sharedStore,
+  server: {
+    auth: new MastraAuthClerk(),
+    apiRoutes,
+    cors: {
+      origin: "*",
+      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+    },
+  },
 });
