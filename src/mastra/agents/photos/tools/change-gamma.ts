@@ -2,7 +2,7 @@ import { Tool } from "@mastra/core/tools";
 import sharp from "sharp";
 import z from "zod";
 import pLimit from "p-limit";
-import { s3Filesystem } from "../../../workspace/s3";
+import { getFilesystem } from "../../../workspace/context";
 import type { errorResult } from "./types";
 
 const CONCURRENCY = 5;
@@ -91,7 +91,8 @@ export const changeGammaTool = new Tool({
             )
         })
     }),
-    execute: async ({ files, gamma }) => {
+    execute: async ({ files, gamma }, context) => {
+        const fs = getFilesystem(context);
         const results: Array<{ file: string; value: gammaValue; outputPath: string }> = [];
         const errors: Array<{ file: string; error: string }> = [];
         const skipped: string[] = [];
@@ -107,19 +108,19 @@ export const changeGammaTool = new Tool({
                 }
 
                 try {
-                    const exists = await s3Filesystem.exists(file);
+                    const exists = await fs.exists(file);
                     if (!exists) {
                         errors.push({ file, error: "File not found in S3" });
                         return;
                     }
 
-                    const buffer = await s3Filesystem.readFile(file) as Buffer;
+                    const buffer = await fs.readFile(file) as Buffer;
                     const result = await changeGamma(buffer, gamma);
 
                     if (Buffer.isBuffer(result)) {
                         const fileName = file.split("/").pop() || file;
                         const outputPath = `gamma_correction/${fileName}`;
-                        await s3Filesystem.writeFile(outputPath, result);
+                        await fs.writeFile(outputPath, result);
                         results.push({ file, value: gamma, outputPath });
                     } else {
                         errors.push({ file, error: String(result.error) });

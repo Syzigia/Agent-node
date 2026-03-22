@@ -2,7 +2,7 @@ import { Tool } from "@mastra/core/tools";
 import sharp from "sharp";
 import z from "zod";
 import pLimit from "p-limit";
-import { s3Filesystem } from "../../../workspace/s3";
+import { getFilesystem } from "../../../workspace/context";
 import type { errorResult } from "./types";
 
 const CONCURRENCY = 5;
@@ -101,7 +101,8 @@ export const blurredPhotosDetectorTool = new Tool({
             )
         })
     }),
-    execute: async ({ files, threshold }) => {
+    execute: async ({ files, threshold }, context) => {
+        const fs = getFilesystem(context);
         const results: Array<{ file: string; blurScore: number; isBlurred: boolean }> = [];
         const errors: Array<{ file: string; error: string }> = [];
         const skipped: string[] = [];
@@ -118,13 +119,13 @@ export const blurredPhotosDetectorTool = new Tool({
                 }
 
                 try {
-                    const exists = await s3Filesystem.exists(file);
+                    const exists = await fs.exists(file);
                     if (!exists) {
                         errors.push({ file, error: "File not found in S3" });
                         return;
                     }
 
-                    const buffer = await s3Filesystem.readFile(file) as Buffer;
+                    const buffer = await fs.readFile(file) as Buffer;
                     const result = await detectBlur(buffer, thresholdValue);
 
                     if ("error" in result) {
@@ -135,7 +136,7 @@ export const blurredPhotosDetectorTool = new Tool({
                         if (result.isBlurred) {
                             const fileName = file.split("/").pop() || file;
                             const destPath = `blurry_photos/${fileName}`;
-                            await s3Filesystem.moveFile(file, destPath);
+                            await fs.moveFile(file, destPath);
                         }
                     }
                 } catch (err: any) {

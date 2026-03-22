@@ -1,7 +1,7 @@
 import { Tool } from "@mastra/core/tools";
 import z from "zod";
 import pLimit from "p-limit";
-import { s3Filesystem } from "../../../workspace/s3";
+import { getFilesystem } from "../../../workspace/context";
 import { createRequire } from "node:module";
 import sharp from "sharp";
 import canvas from "canvas";
@@ -163,7 +163,8 @@ export const closedEyesDetectorTool = new Tool({
       ),
     }),
   }),
-  execute: async ({ files, threshold }) => {
+  execute: async ({ files, threshold }, context) => {
+    const fs = getFilesystem(context);
     const results: Array<{
       file: string;
       hasClosedEyes: boolean;
@@ -186,13 +187,13 @@ export const closedEyesDetectorTool = new Tool({
         }
 
         try {
-          const exists = await s3Filesystem.exists(file);
+          const exists = await fs.exists(file);
           if (!exists) {
             errors.push({ file, error: "File not found in S3" });
             return;
           }
 
-          const buffer = await s3Filesystem.readFile(file) as Buffer;
+          const buffer = await fs.readFile(file) as Buffer;
           const result = await detectClosedEyes(buffer, thresholdValue);
 
           if ("error" in result) {
@@ -209,7 +210,7 @@ export const closedEyesDetectorTool = new Tool({
             if (result.hasClosedEyes) {
               const fileName = file.split("/").pop() || file;
               const destPath = `eyes_closed/${fileName}`;
-              await s3Filesystem.moveFile(file, destPath);
+              await fs.moveFile(file, destPath);
             }
           }
         } catch (err: any) {

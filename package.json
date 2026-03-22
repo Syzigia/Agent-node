@@ -31,6 +31,7 @@
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@mastra/auth-clerk": "^1.0.2",
     "@mastra/core": "^1.13.2",
+    "@mastra/deployer-vercel": "^1.1.7",
     "@mastra/libsql": "^1.7.0",
     "@mastra/memory": "^1.8.2",
     "@mastra/observability": "^1.5.0",
