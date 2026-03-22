@@ -63,12 +63,12 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <form onSubmit={handleCreate} className="flex gap-2">
+      <form onSubmit={handleCreate} className="flex flex-col gap-2 sm:flex-row">
         <Input
           placeholder="New project name..."
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          className="max-w-xs"
+          className="max-w-full sm:max-w-xs"
         />
         <Button type="submit" disabled={creating || !newName.trim()}>
           <Plus className="size-4" />

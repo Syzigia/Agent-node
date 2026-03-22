@@ -18,7 +18,9 @@ export default async function DashboardLayout({
         </a>
         <UserButton />
       </header>
-      <main className="mx-auto max-w-4xl p-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-6">
+        {children}
+      </main>
     </div>
   )
 }

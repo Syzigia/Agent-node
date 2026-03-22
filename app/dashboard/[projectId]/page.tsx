@@ -563,8 +563,8 @@ export default function ProjectPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -572,7 +572,9 @@ export default function ProjectPage() {
           >
             <ArrowLeft className="size-4" />
           </Button>
-          <h1 className="text-lg font-medium">{project.name}</h1>
+          <h1 className="truncate text-base font-medium sm:text-lg">
+            {project.name}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -587,6 +589,7 @@ export default function ProjectPage() {
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
+            className="shrink-0"
           >
             <Upload className="size-3.5" />
             {uploading ? "Uploading..." : "Upload files"}
@@ -614,14 +617,17 @@ export default function ProjectPage() {
         </div>
       )}
 
-      <div className="flex gap-4" style={{ height: "calc(100svh - 180px)" }}>
+      <div
+        className="grid gap-3 lg:grid-cols-[15rem_1px_minmax(0,1fr)]"
+        style={{ minHeight: "calc(100svh - 220px)" }}
+      >
         {/* Sidebar */}
-        <div className="flex w-56 shrink-0 flex-col gap-2">
+        <div className="flex min-h-48 flex-col gap-2 lg:min-h-0">
           <Button size="sm" onClick={createChat} className="w-full">
             <Plus className="size-3.5" />
             New chat
           </Button>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="h-40 lg:h-[calc(100svh-300px)]">
             <div className="space-y-1">
               {chatList.map((chat) => (
                 <div
@@ -649,10 +655,10 @@ export default function ProjectPage() {
           </ScrollArea>
         </div>
 
-        <Separator orientation="vertical" />
+        <Separator orientation="vertical" className="hidden lg:block" />
 
         {/* Chat area */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-[50vh] min-w-0 flex-col lg:min-h-0">
           {!activeChat ? (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center text-sm text-muted-foreground">
@@ -662,7 +668,7 @@ export default function ProjectPage() {
             </div>
           ) : (
             <>
-              <ScrollArea className="flex-1 pr-2">
+              <ScrollArea className="h-[50vh] pr-2 sm:h-[56vh] lg:h-[calc(100svh-300px)]">
                 <div className="space-y-4 pb-4">
                   {messages.map((msg) => (
                     <MessageBubble key={msg.id} message={msg} />
@@ -688,7 +694,7 @@ export default function ProjectPage() {
                 </div>
               </ScrollArea>
 
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex items-end gap-2">
                 <Textarea
                   placeholder="Type a message..."
                   value={input}
@@ -699,7 +705,7 @@ export default function ProjectPage() {
                       handleSend()
                     }
                   }}
-                  className="min-h-10 resize-none"
+                  className="min-h-10 flex-1 resize-none"
                   rows={1}
                 />
                 <Button

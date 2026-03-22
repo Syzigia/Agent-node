@@ -117,7 +117,7 @@ function VideoAgentVisual() {
 
           {/* Processing Indicator */}
           <div className="video-processing-indicator">
-            <span className="video-processing-label">Procesando</span>
+            <span className="video-processing-label">Processing</span>
             <div className="video-processing-track">
               <div className="video-processing-dot" />
             </div>
@@ -146,7 +146,7 @@ function VideoAgentVisual() {
             >
               <path d="M9 10l3-3 3 3M9 14l3 3 3-3" />
             </svg>
-            <span>Detección de momentos</span>
+            <span>Moment detection</span>
           </div>
           <div className="video-tool-item">
             <svg
@@ -157,7 +157,7 @@ function VideoAgentVisual() {
             >
               <path d="M7 8h10M7 12h10M7 16h10" />
             </svg>
-            <span>Subtítulos auto</span>
+            <span>Auto subtitles</span>
           </div>
         </div>
       </div>
@@ -427,12 +427,12 @@ function PhotoAgentVisual() {
   )
 
   const photos = [
-    { id: 1, status: "good", label: "Aprobada" },
-    { id: 2, status: "bad", label: "Descarte" },
-    { id: 3, status: "good", label: "Aprobada" },
-    { id: 4, status: "good", label: "Aprobada" },
-    { id: 5, status: "bad", label: "Descarte" },
-    { id: 6, status: "good", label: "Aprobada" },
+    { id: 1, status: "good", label: "Approved" },
+    { id: 2, status: "bad", label: "Discard" },
+    { id: 3, status: "good", label: "Approved" },
+    { id: 4, status: "good", label: "Approved" },
+    { id: 5, status: "bad", label: "Discard" },
+    { id: 6, status: "good", label: "Approved" },
   ]
 
   return (
@@ -465,7 +465,7 @@ function PhotoAgentVisual() {
         {/* Adjustment Panel */}
         <div className="photo-adjustments">
           <div className="photo-adjustment-item">
-            <span className="adjustment-name">Exposición</span>
+            <span className="adjustment-name">Exposure</span>
             <div className="adjustment-bar-container">
               <div className="photo-adjustment-bar" style={{ width: "0%" }} />
             </div>
@@ -479,7 +479,7 @@ function PhotoAgentVisual() {
             <span className="adjustment-value">+15</span>
           </div>
           <div className="photo-adjustment-item">
-            <span className="adjustment-name">Nitidez</span>
+            <span className="adjustment-name">Sharpness</span>
             <div className="adjustment-bar-container">
               <div className="photo-adjustment-bar" style={{ width: "0%" }} />
             </div>
@@ -491,15 +491,15 @@ function PhotoAgentVisual() {
         <div className="photo-stats">
           <div className="photo-stat">
             <span className="stat-number">247</span>
-            <span className="stat-label">Fotos procesadas</span>
+            <span className="stat-label">Photos processed</span>
           </div>
           <div className="photo-stat">
             <span className="stat-number">23</span>
-            <span className="stat-label">Descartadas</span>
+            <span className="stat-label">Discarded</span>
           </div>
           <div className="photo-stat">
             <span className="stat-number">4m</span>
-            <span className="stat-label">Tiempo ahorrado</span>
+            <span className="stat-label">Time saved</span>
           </div>
         </div>
       </div>
@@ -579,42 +579,42 @@ export default function DomainAgentsSection() {
     {
       id: "01",
       title: "Video Agent",
-      subtitle: "El Editor Cósmico",
+      subtitle: "The Cosmic Editor",
       description:
-        "Procesa audio, detecta momentos clave, genera subtítulos y corta silencios automáticamente. Tu flujo de edición, acelerado a velocidad warp.",
+        "Process audio, detect key moments, generate subtitles, and cut silences automatically. Your editing workflow, accelerated to warp speed.",
       tools: [
-        "Limpieza de audio",
-        "Detección de momentos",
-        "Subtítulos automáticos",
-        "Corte de silencios",
+        "Audio cleanup",
+        "Moment detection",
+        "Automatic subtitles",
+        "Silence cutting",
       ],
       visual: VideoAgentVisual,
     },
     {
       id: "02",
       title: "Production Agent",
-      subtitle: "El Ingeniero Estelar",
+      subtitle: "The Stellar Engineer",
       description:
-        "Vectorización, mejora de imagen, remoción de fondos y generación de mockups. Transforma assets con precisión de máquina.",
+        "Vectorization, image enhancement, background removal, and mockup generation. Transform creative assets with machine precision.",
       tools: [
-        "Vectorización",
-        "Mejora de imagen",
-        "Remoción de fondos",
-        "Mockups automáticos",
+        "Vectorization",
+        "Image enhancement",
+        "Background removal",
+        "Automatic mockups",
       ],
       visual: ProductionAgentVisual,
     },
     {
       id: "03",
       title: "Photo Agent",
-      subtitle: "El Curador de Galaxias",
+      subtitle: "The Galaxy Curator",
       description:
-        "Filtrado inteligente, corrección en lote con parámetros explícitos y extracción de presets. Tu flujo fotográfico, optimizado.",
+        "Smart filtering, batch correction with explicit parameters, and preset extraction. Your photo workflow, fully optimized.",
       tools: [
-        "Filtrado de calidad",
-        "Corrección en lote",
-        "Extracción de presets",
-        "Organización",
+        "Quality filtering",
+        "Batch correction",
+        "Preset extraction",
+        "Organization",
       ],
       visual: PhotoAgentVisual,
     },
@@ -625,12 +625,11 @@ export default function DomainAgentsSection() {
       {/* Header */}
       <div ref={headerRef} className="domain-header">
         <h2 className="domain-header-title">
-          Los Constructores del Universo Creativo
+          Builders of the Creative Universe
         </h2>
         <p className="domain-header-subtitle">
-          Nueve Domain Agents especializados. Sesenta y ocho herramientas.
-          <br />
-          Un ecosistema completo para profesionales creativos.
+          Nine specialized Domain Agents. Sixty-eight tools.
+          <br />A complete ecosystem for creative professionals.
         </p>
       </div>
 

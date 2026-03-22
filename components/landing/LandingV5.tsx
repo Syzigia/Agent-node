@@ -31,12 +31,12 @@ function HeaderV5() {
             size="sm"
             className="v5-header-btn v5-header-btn-secondary !rounded-md"
           >
-            Iniciar sesión
+            Sign in
           </Button>
         </SignInButton>
         <SignUpButton mode="modal">
           <Button size="sm" className="v5-header-btn !rounded-md">
-            Acceso Anticipado
+            Early access
           </Button>
         </SignUpButton>
       </div>
@@ -118,13 +118,13 @@ function HeroSection() {
         </h1>
         <p className="v5-hero-byline">by Syzygy</p>
         <p className="v5-hero-sub">
-          El sistema operativo para mentes creativas.
+          The operating system for creative minds.
           <br />
-          Donde la productividad alcanza su punto de singularidad.
+          Where productivity reaches singularity.
         </p>
       </div>
       <div className="v5-scroll-hint">
-        <span>Descender al horizonte de eventos</span>
+        <span>Descend into the event horizon</span>
         <div className="v5-scroll-line" />
       </div>
     </section>
@@ -164,9 +164,9 @@ function ProblemSection() {
   const counterRefs = useRef<(HTMLSpanElement | null)[]>([])
 
   const stats = [
-    { value: 20, unit: "h/semana", desc: "Tareas repetitivas" },
-    { value: 12, unit: "h/semana", desc: "Administrativo" },
-    { value: 8, unit: "h/semana", desc: "Organización" },
+    { value: 20, unit: "h/week", desc: "Repetitive tasks" },
+    { value: 12, unit: "h/week", desc: "Administrative work" },
+    { value: 8, unit: "h/week", desc: "Organization" },
   ]
 
   useGSAP(
@@ -260,9 +260,8 @@ function ProblemSection() {
     { scope: ref }
   )
 
-  const problemWords = "Cada semana pierdes tiempo en lo que no importa.".split(
-    " "
-  )
+  const problemWords =
+    "Every week you lose time on what does not matter.".split(" ")
 
   return (
     <section className="v5-problem" ref={ref}>
@@ -298,7 +297,7 @@ function ProblemSection() {
       </div>
 
       <p className="v5-problem-closing">
-        40 horas que podrías dedicar a crear. <strong>TON las recupera.</strong>
+        40 hours you could spend creating. <strong>TON gives them back.</strong>
       </p>
     </section>
   )
@@ -632,11 +631,11 @@ function AgentsSection() {
       {/* Agent 1 — Production */}
       <div className="v5-agent">
         <div className="v5-agent-info">
-          <div className="v5-agent-index">01 — Agente de Producción</div>
-          <h3 className="v5-agent-title">Edición en lote milimétrica.</h3>
+          <div className="v5-agent-index">01 — Production Agent</div>
+          <h3 className="v5-agent-title">Precision batch editing.</h3>
           <p className="v5-agent-desc">
-            Corrige la exposición y color de cientos de fotos en segundos con
-            parámetros exactos, directo en tus archivos locales.
+            Correct exposure and color on hundreds of photos in seconds with
+            exact parameters, directly in your workspace files.
           </p>
         </div>
         <PhotoVisual />
@@ -645,11 +644,11 @@ function AgentsSection() {
       {/* Agent 2 — Finance */}
       <div className="v5-agent reverse">
         <div className="v5-agent-info">
-          <div className="v5-agent-index">02 — Agente Financiero</div>
-          <h3 className="v5-agent-title">Tu flujo de caja, blindado.</h3>
+          <div className="v5-agent-index">02 — Finance Agent</div>
+          <h3 className="v5-agent-title">Your cash flow, protected.</h3>
           <p className="v5-agent-desc">
-            Cobros automáticos de facturas vencidas, cálculo de impuestos
-            trimestrales y control de gastos en un solo lugar.
+            Automate overdue invoice follow-ups, estimate quarterly taxes, and
+            keep expenses under control in one place.
           </p>
         </div>
         <FinanceVisual />
@@ -658,11 +657,11 @@ function AgentsSection() {
       {/* Agent 3 — Growth */}
       <div className="v5-agent">
         <div className="v5-agent-info">
-          <div className="v5-agent-index">03 — Agente de Crecimiento</div>
-          <h3 className="v5-agent-title">De portafolio a ingresos.</h3>
+          <div className="v5-agent-index">03 — Growth Agent</div>
+          <h3 className="v5-agent-title">From portfolio to revenue.</h3>
           <p className="v5-agent-desc">
-            Genera casos de estudio automáticamente, calcula tus tarifas por
-            brand deal y reactiva clientes dormidos.
+            Generate case studies automatically, estimate your brand-deal rates,
+            and reactivate dormant clients.
           </p>
         </div>
         <GrowthVisual />
@@ -703,14 +702,14 @@ function CtaSection() {
 
   return (
     <section className="v5-cta" ref={ref}>
-      <h2>Tu creatividad merece un sistema.</h2>
+      <h2>Your creativity deserves a system.</h2>
       <p className="v5-cta-sub">
-        Únete a los creadores que están escalando sin trabajar fines de semana.
+        Join creators who are scaling without sacrificing every weekend.
       </p>
       <div className="v5-cta-actions">
         <SignUpButton mode="modal">
           <Button size="lg" className="v5-cta-btn !rounded-lg">
-            Solicitar acceso
+            Request access
           </Button>
         </SignUpButton>
       </div>
