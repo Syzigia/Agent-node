@@ -13,7 +13,7 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: "Mastra AI Platform",
+  title: "TON",
   description: "Multi-tenant AI agent platform",
 }
 
@@ -27,7 +27,12 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+        className={cn(
+          "antialiased",
+          fontMono.variable,
+          "font-sans",
+          inter.variable
+        )}
       >
         <body>
           <ThemeProvider>{children}</ThemeProvider>
