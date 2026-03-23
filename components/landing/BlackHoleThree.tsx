@@ -817,9 +817,9 @@ export default function BlackHoleThree() {
       uInnerRadius: { value: 0.15 },
       uOuterRadius: { value: 0.45 },
       uCameraPos: { value: camera.position },
-      uDiskColor1: { value: new THREE.Color(1.0, 0.95, 0.8) },
-      uDiskColor2: { value: new THREE.Color(1.0, 0.5, 0.2) },
-      uDiskColor3: { value: new THREE.Color(0.8, 0.2, 0.4) },
+      uDiskColor1: { value: new THREE.Color(0.7, 1.0, 0.9) },
+      uDiskColor2: { value: new THREE.Color(0.0, 0.9, 0.63) },
+      uDiskColor3: { value: new THREE.Color(0.66, 0.33, 0.97) },
       uIntensity: { value: 1.2 },
     }
     const diskMaterial = new THREE.ShaderMaterial({

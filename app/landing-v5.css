@@ -1,8 +1,19 @@
 /* ========== V5 LANDING — EVENT HORIZON ========== */
 
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --v5-primary: #00e5a0;
+  --v5-primary-rgb: 0, 229, 160;
+  --v5-secondary: #a855f7;
+  --v5-secondary-rgb: 168, 85, 247;
+  --v5-glow-primary: rgba(0, 229, 160, 0.4);
+  --v5-glow-secondary: rgba(168, 85, 247, 0.4);
+}
+
 .v5 {
   color: #fff;
-  font-family: "Inter", sans-serif;
+  font-family: "Outfit", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -22,6 +33,19 @@
   z-index: 9999;
 }
 
+/* Film grain texture */
+.v5::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 9998;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
 /* Cursor creative glow */
 .v5-content {
   cursor: crosshair;
@@ -31,18 +55,23 @@
 .v5-hero::after {
   content: "";
   position: absolute;
-  bottom: 0;
+  bottom: -10%;
   left: 50%;
   transform: translateX(-50%);
-  width: 60%;
-  height: 200px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 229, 160, 0.08) 0%,
-    transparent 70%
-  );
+  width: 120%;
+  height: 400px;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(var(--v5-secondary-rgb), 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 50%, rgba(var(--v5-primary-rgb), 0.1) 0%, transparent 50%);
   pointer-events: none;
   z-index: 1;
+  animation: v5-aurora-drift 8s ease-in-out infinite alternate;
+}
+
+@keyframes v5-aurora-drift {
+  0% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-48%) scale(1.05); }
+  100% { opacity: 0.7; transform: translateX(-52%) scale(1); }
 }
 
 .v5-cosmic-canvas {
@@ -79,7 +108,7 @@
 }
 
 .v5-header-logo {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -150,7 +179,7 @@
 }
 
 .v5-hero-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(4rem, 13vw, 11rem);
   font-weight: 700;
   letter-spacing: -0.05em;
@@ -161,13 +190,24 @@
 .v5-hero-char {
   display: inline-block;
   background: linear-gradient(
-    180deg,
+    135deg,
     #ffffff 0%,
-    rgba(255, 255, 255, 0.65) 100%
+    var(--v5-primary) 40%,
+    var(--v5-secondary) 70%,
+    #ffffff 100%
   );
+  background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: v5-shimmer 6s ease-in-out infinite;
+  filter: drop-shadow(0 0 40px rgba(var(--v5-primary-rgb), 0.15));
+}
+
+@keyframes v5-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .v5-hero-byline {
@@ -186,6 +226,14 @@
   text-align: center;
   max-width: 500px;
   line-height: 1.6;
+}
+
+.v5-hero-sub .v5-highlight {
+  background: linear-gradient(90deg, var(--v5-primary), var(--v5-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 500;
 }
 
 .v5-scroll-hint {
@@ -207,7 +255,7 @@
 .v5-scroll-line {
   width: 1px;
   height: 36px;
-  background: linear-gradient(to bottom, rgba(0, 229, 160, 0.4), transparent);
+  background: linear-gradient(to bottom, var(--v5-primary), var(--v5-secondary), transparent);
   animation: v5-scroll-pulse 2.5s ease-in-out infinite;
 }
 
@@ -250,18 +298,19 @@
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(0, 229, 160, 0.15),
+    rgba(var(--v5-secondary-rgb), 0.2),
+    rgba(var(--v5-primary-rgb), 0.2),
     transparent
   );
 }
 
 .v5-divider-dot {
   position: absolute;
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #00e5a0;
-  box-shadow: 0 0 8px rgba(0, 229, 160, 0.6);
+  background: var(--v5-primary);
+  box-shadow: 0 0 8px var(--v5-glow-primary), 0 0 20px var(--v5-glow-secondary);
   animation: v5-dot-travel 4s ease-in-out infinite;
 }
 
@@ -307,7 +356,7 @@
 }
 
 .v5-problem h2 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(1.6rem, 3.5vw, 2.6rem);
   font-weight: 500;
   letter-spacing: -0.025em;
@@ -324,14 +373,50 @@
 }
 
 .v5-stat {
-  padding: 1.5rem 0;
+  padding: 2rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.v5-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v5-primary-rgb), 0.04) 0%,
+    transparent 40%,
+    rgba(var(--v5-secondary-rgb), 0.03) 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.v5-stat:hover {
+  border-color: rgba(var(--v5-primary-rgb), 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(var(--v5-primary-rgb), 0.08), 0 0 0 1px rgba(var(--v5-primary-rgb), 0.08);
+}
+
+.v5-stat:hover::before {
+  opacity: 1;
 }
 
 .v5-stat-number {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(2.5rem, 5vw, 3.8rem);
   font-weight: 700;
-  color: #00e5a0;
+  background: linear-gradient(135deg, var(--v5-primary) 0%, var(--v5-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1;
 }
 
@@ -339,6 +424,8 @@
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.3);
   font-weight: 400;
+  background: none;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
 }
 
 .v5-stat-desc {
@@ -356,7 +443,8 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 229, 160, 0.3),
+    rgba(var(--v5-primary-rgb), 0.4),
+    rgba(var(--v5-secondary-rgb), 0.3),
     transparent
   );
   opacity: 0;
@@ -377,8 +465,11 @@
 }
 
 .v5-problem-closing strong {
-  color: #00e5a0;
-  font-weight: 500;
+  background: linear-gradient(90deg, var(--v5-primary), var(--v5-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
 }
 
 /* ── Agents Section ── */
@@ -411,11 +502,14 @@
 }
 
 .v5-agent-index {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: 0.65rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(0, 229, 160, 0.6);
+  background: linear-gradient(90deg, rgba(var(--v5-primary-rgb), 0.8), rgba(var(--v5-secondary-rgb), 0.6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 1.2rem;
   display: flex;
   align-items: center;
@@ -427,25 +521,26 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00e5a0;
-  box-shadow: 0 0 8px rgba(0, 229, 160, 0.5);
+  background: var(--v5-primary);
+  box-shadow: 0 0 8px var(--v5-glow-primary), 0 0 16px var(--v5-glow-secondary);
   animation: v5-agent-pulse 3s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes v5-agent-pulse {
   0%,
   100% {
     opacity: 0.5;
-    box-shadow: 0 0 4px rgba(0, 229, 160, 0.3);
+    box-shadow: 0 0 4px var(--v5-glow-primary);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 12px rgba(0, 229, 160, 0.7);
+    box-shadow: 0 0 12px var(--v5-glow-primary), 0 0 24px var(--v5-glow-secondary);
   }
 }
 
 .v5-agent-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(1.4rem, 2.5vw, 2rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -506,7 +601,7 @@
 .v5-finance-label {
   font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.3);
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   letter-spacing: 0.05em;
   width: 28px;
   flex-shrink: 0;
@@ -600,7 +695,7 @@
 }
 
 .v5-privacy h2 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(1.8rem, 4vw, 3rem);
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -640,12 +735,15 @@
 }
 
 .v5-cta h2 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(1.6rem, 3.5vw, 2.6rem);
   font-weight: 600;
   letter-spacing: -0.025em;
   margin-bottom: 0.6rem;
-  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 50%, var(--v5-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .v5-cta-sub {
@@ -701,7 +799,7 @@
   border-radius: 8px;
   color: #fff;
   font-size: 0.85rem;
-  font-family: "Inter", sans-serif;
+  font-family: "Outfit", sans-serif;
   outline: none;
   transition: border-color 0.25s;
 }
@@ -715,24 +813,162 @@
 }
 
 .v5-cta-btn {
-  padding: 0.75rem 1.4rem;
-  background: #00e5a0;
+  padding: 0.85rem 1.8rem;
+  background: linear-gradient(135deg, var(--v5-primary), #00c98d);
   color: #000;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 0.8rem;
-  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  font-family: "Syne", sans-serif;
+  letter-spacing: 0.02em;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.v5-cta-btn::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--v5-primary), var(--v5-secondary), var(--v5-primary));
+  background-size: 200% 200%;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  animation: v5-gradient-rotate 3s linear infinite;
 }
 
 .v5-cta-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0, 229, 160, 0.3);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(var(--v5-primary-rgb), 0.35), 0 0 60px rgba(var(--v5-secondary-rgb), 0.15);
+}
+
+.v5-cta-btn:hover::before {
+  opacity: 1;
+}
+
+@keyframes v5-gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Marquee Ticker ── */
+
+.v5-marquee {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.v5-marquee::before,
+.v5-marquee::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.v5-marquee::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(3, 3, 8, 1), transparent);
+}
+
+.v5-marquee::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(3, 3, 8, 1), transparent);
+}
+
+.v5-marquee-track {
+  display: flex;
+  gap: 2rem;
+  animation: v5-marquee-scroll 30s linear infinite;
+  width: max-content;
+}
+
+.v5-marquee-item {
+  font-family: "Syne", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  transition: color 0.3s;
+}
+
+.v5-marquee-item:hover {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.v5-marquee-separator {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--v5-primary), var(--v5-secondary));
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+@keyframes v5-marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ── Floating Orbs ── */
+
+.v5-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  z-index: 0;
+}
+
+.v5-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(var(--v5-secondary-rgb), 0.08), transparent 70%);
+  top: 30%;
+  right: -100px;
+  animation: v5-float-orb 15s ease-in-out infinite;
+}
+
+.v5-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(var(--v5-primary-rgb), 0.06), transparent 70%);
+  top: 60%;
+  left: -80px;
+  animation: v5-float-orb 18s ease-in-out infinite reverse;
+}
+
+.v5-orb-3 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(var(--v5-secondary-rgb), 0.05), transparent 70%);
+  bottom: 15%;
+  right: 10%;
+  animation: v5-float-orb 20s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+@keyframes v5-float-orb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(15px, 30px) scale(1.05); }
 }
 
 /* ── Footer ── */
@@ -744,6 +980,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(to top, rgba(var(--v5-secondary-rgb), 0.02), transparent);
 }
 
 /* ── Responsive ── */
@@ -953,15 +1190,17 @@
 }
 
 .domain-header-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background: linear-gradient(135deg, #fff 0%, var(--v5-primary) 50%, var(--v5-secondary) 100%);
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 1.5rem;
+  animation: v5-shimmer 8s ease-in-out infinite;
 }
 
 .domain-header-subtitle {
@@ -999,10 +1238,17 @@
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(0, 229, 160, 0.03) 0%,
-    transparent 50%
+    rgba(var(--v5-primary-rgb), 0.04) 0%,
+    transparent 40%,
+    rgba(var(--v5-secondary-rgb), 0.02) 100%
   );
   pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.domain-agent-card:hover {
+  border-color: rgba(var(--v5-primary-rgb), 0.12);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(var(--v5-secondary-rgb), 0.05);
 }
 
 .domain-agent-card.reverse {
@@ -1026,7 +1272,7 @@
 }
 
 .domain-agent-number {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
   color: #00e5a0;
@@ -1040,7 +1286,7 @@
 }
 
 .domain-agent-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1050,7 +1296,10 @@
 
 .domain-agent-subtitle {
   font-size: 1rem;
-  color: #00e5a0;
+  background: linear-gradient(90deg, var(--v5-primary), var(--v5-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-weight: 500;
   margin-bottom: 1.5rem;
   letter-spacing: 0.05em;
@@ -1071,12 +1320,19 @@
 
 .domain-tool-tag {
   padding: 0.4rem 0.9rem;
-  background: rgba(0, 229, 160, 0.1);
-  border: 1px solid rgba(0, 229, 160, 0.2);
+  background: rgba(var(--v5-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--v5-primary-rgb), 0.15);
   border-radius: 20px;
   font-size: 0.75rem;
-  color: rgba(0, 229, 160, 0.9);
+  color: rgba(var(--v5-primary-rgb), 0.9);
   letter-spacing: 0.02em;
+  transition: all 0.3s;
+}
+
+.domain-tool-tag:hover {
+  background: rgba(var(--v5-secondary-rgb), 0.08);
+  border-color: rgba(var(--v5-secondary-rgb), 0.25);
+  color: var(--v5-secondary);
 }
 
 .domain-agent-visual-wrapper {
@@ -1157,7 +1413,7 @@
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
-  font-family: "Space Grotesk", monospace;
+  font-family: "Syne", monospace;
   font-size: 0.65rem;
   color: #00e5a0;
   background: rgba(0, 0, 0, 0.7);
@@ -1644,7 +1900,7 @@
 
 .stat-number {
   display: block;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Syne", sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   color: #00e5a0;

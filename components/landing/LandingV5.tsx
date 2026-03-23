@@ -118,9 +118,9 @@ function HeroSection() {
         </h1>
         <p className="v5-hero-byline">by Syzygy</p>
         <p className="v5-hero-sub">
-          The operating system for creative minds.
+          The operating system for <span className="v5-highlight">creative minds</span>.
           <br />
-          Where productivity reaches singularity.
+          Where productivity reaches <span className="v5-highlight">singularity</span>.
         </p>
       </div>
       <div className="v5-scroll-hint">
@@ -144,10 +144,17 @@ function CosmicDivider() {
         viewBox="0 0 100 20"
         preserveAspectRatio="none"
       >
+        <defs>
+          <linearGradient id="divider-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(0,229,160,0.2)" />
+            <stop offset="50%" stopColor="rgba(168,85,247,0.2)" />
+            <stop offset="100%" stopColor="rgba(0,229,160,0.2)" />
+          </linearGradient>
+        </defs>
         <path
           d="M0,10 Q25,0 50,10 T100,10"
           fill="none"
-          stroke="rgba(0,229,160,0.2)"
+          stroke="url(#divider-grad)"
           strokeWidth="0.5"
         />
       </svg>
@@ -593,6 +600,40 @@ function GrowthVisual() {
 }
 
 /* ═══════════════════════════════════════════
+   MARQUEE TICKER
+   ═══════════════════════════════════════════ */
+
+const marqueeItems = [
+  "AI Agents",
+  "Batch Editing",
+  "Finance Automation",
+  "Photo Curation",
+  "Growth Engine",
+  "Vectorization",
+  "Smart Workflows",
+  "Invoice Tracking",
+  "Brand Analytics",
+  "Creative Tools",
+]
+
+function MarqueeTicker() {
+  const items = [...marqueeItems, ...marqueeItems]
+
+  return (
+    <div className="v5-marquee">
+      <div className="v5-marquee-track">
+        {items.map((item, i) => (
+          <span key={i} className="v5-marquee-item">
+            {item}
+            <span className="v5-marquee-separator" />
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
    AGENTS SECTION
    ═══════════════════════════════════════════ */
 
@@ -725,12 +766,16 @@ export default function LandingV5() {
   return (
     <div className="v5">
       <BlackHoleThree />
+      {/* Floating ambient orbs */}
+      <div className="v5-orb v5-orb-1" />
+      <div className="v5-orb v5-orb-2" />
+      <div className="v5-orb v5-orb-3" />
       <div className="v5-content">
         <HeaderV5 />
         <HeroSection />
         <CosmicDivider />
         <ProblemSection />
-        <CosmicDivider />
+        <MarqueeTicker />
         <AgentsSection />
         <CosmicDivider />
         <DomainAgentsSection />
