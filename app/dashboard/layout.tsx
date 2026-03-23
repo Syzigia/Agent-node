@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { UserButton } from "@clerk/nextjs"
+import { isWhitelisted } from "@/lib/whitelist"
 
 export default async function DashboardLayout({
   children,
@@ -9,6 +10,7 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth()
   if (!userId) redirect("/")
+  if (!isWhitelisted(userId)) redirect("/waitlist")
 
   return (
     <div className="min-h-svh">

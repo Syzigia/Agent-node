@@ -254,8 +254,8 @@ function PhotoAgentVisual() {
 
       // Floating animation for gallery
       gsap.to(".photo-gallery-item", {
-        y: "+=8",
-        duration: 2,
+        y: "+=4",
+        duration: 2.5,
         stagger: {
           each: 0.2,
           from: "random",
@@ -272,9 +272,7 @@ function PhotoAgentVisual() {
     { id: 1, status: "good", label: "Approved" },
     { id: 2, status: "bad", label: "Discard" },
     { id: 3, status: "good", label: "Approved" },
-    { id: 4, status: "good", label: "Approved" },
-    { id: 5, status: "bad", label: "Discard" },
-    { id: 6, status: "good", label: "Approved" },
+    { id: 4, status: "bad", label: "Discard" },
   ]
 
   return (

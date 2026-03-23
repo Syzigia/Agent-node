@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState, useCallback, useEffect } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
@@ -29,13 +29,13 @@ function HeaderV5() {
           <Button
             variant="ghost"
             size="sm"
-            className="v5-header-btn v5-header-btn-secondary !rounded-md"
+            className="v5-header-btn v5-header-btn-secondary !rounded-full"
           >
             Sign in
           </Button>
         </SignInButton>
         <SignUpButton mode="modal">
-          <Button size="sm" className="v5-header-btn !rounded-md">
+          <Button size="sm" className="v5-header-btn !rounded-full">
             Early access
           </Button>
         </SignUpButton>
@@ -48,56 +48,60 @@ function HeaderV5() {
    HERO
    ═══════════════════════════════════════════ */
 
-function HeroSection() {
+function HeroSection({ ready }: { ready: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ delay: 0.5 })
+      if (!ready) return
 
-      // Title animation with character split
+      const tl = gsap.timeline({ delay: 0.3 })
+
       const chars = document.querySelectorAll(".v5-hero-char")
       tl.fromTo(
         chars,
         {
-          y: 100,
+          y: 120,
           opacity: 0,
           rotateX: -90,
+          scale: 0.8,
         },
         {
           y: 0,
           opacity: 1,
           rotateX: 0,
-          duration: 1.2,
-          stagger: 0.08,
+          scale: 1,
+          duration: 1.4,
+          stagger: 0.1,
           ease: "power4.out",
         }
       )
         .fromTo(
           ".v5-hero-byline",
-          { opacity: 0, letterSpacing: "0.5em" },
+          { opacity: 0, letterSpacing: "0.6em", y: 10 },
           {
             opacity: 1,
-            letterSpacing: "0.2em",
-            duration: 1,
+            letterSpacing: "0.25em",
+            y: 0,
+            duration: 1.2,
             ease: "power2.out",
           },
-          "-=0.6"
+          "-=0.8"
         )
         .fromTo(
           ".v5-hero-sub",
-          { y: 30, opacity: 0 },
+          { y: 25, opacity: 0 },
           { y: 0, opacity: 1, duration: 1, ease: "power3.out" },
-          "-=0.5"
+          "-=0.6"
         )
         .fromTo(
           ".v5-scroll-hint",
-          { opacity: 0 },
-          { opacity: 1, duration: 0.8 },
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.8 },
           "-=0.3"
         )
     },
-    { scope: ref }
+    { scope: ref, dependencies: [ready] }
   )
 
   const title = "TON"
@@ -118,13 +122,15 @@ function HeroSection() {
         </h1>
         <p className="v5-hero-byline">by Syzygy</p>
         <p className="v5-hero-sub">
-          The operating system for <span className="v5-highlight">creative minds</span>.
+          The operating system for{" "}
+          <span className="v5-highlight">creative minds</span>.
           <br />
-          Where productivity reaches <span className="v5-highlight">singularity</span>.
+          Where productivity reaches{" "}
+          <span className="v5-highlight">singularity</span>.
         </p>
       </div>
       <div className="v5-scroll-hint">
-        <span>Descend into the event horizon</span>
+        <span>Descend into the singularity</span>
         <div className="v5-scroll-line" />
       </div>
     </section>
@@ -139,31 +145,12 @@ function CosmicDivider() {
   return (
     <div className="v5-divider">
       <div className="v5-divider-dot" />
-      <svg
-        className="v5-divider-wave"
-        viewBox="0 0 100 20"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="divider-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(0,229,160,0.2)" />
-            <stop offset="50%" stopColor="rgba(168,85,247,0.2)" />
-            <stop offset="100%" stopColor="rgba(0,229,160,0.2)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0,10 Q25,0 50,10 T100,10"
-          fill="none"
-          stroke="url(#divider-grad)"
-          strokeWidth="0.5"
-        />
-      </svg>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════
-   PROBLEM
+   PROBLEM / METRICS
    ═══════════════════════════════════════════ */
 
 function ProblemSection() {
@@ -178,16 +165,16 @@ function ProblemSection() {
 
   useGSAP(
     () => {
-      // Heading with word animation
+      // Heading reveal — scrub-linked for smooth entrance
       gsap.fromTo(
         ".v5-problem-word",
-        { y: 40, opacity: 0, rotateX: -45 },
+        { y: 40, opacity: 0, rotateX: -30 },
         {
           y: 0,
           opacity: 1,
           rotateX: 0,
           duration: 0.8,
-          stagger: 0.1,
+          stagger: 0.08,
           ease: "power3.out",
           scrollTrigger: {
             trigger: ref.current,
@@ -197,17 +184,17 @@ function ProblemSection() {
         }
       )
 
-      // Counters with glow effect
+      // Animated counters
       const counters = counterRefs.current.filter(Boolean)
       counters.forEach((el, i) => {
         const obj = { val: 0 }
         gsap.to(obj, {
           val: stats[i].value,
-          duration: 2,
+          duration: 2.2,
           ease: "power2.out",
           scrollTrigger: {
             trigger: el,
-            start: "top 80%",
+            start: "top 85%",
             toggleActions: "play none none none",
           },
           onUpdate: () => {
@@ -215,33 +202,32 @@ function ProblemSection() {
           },
         })
 
-        // Glow animation
         gsap.to(`.v5-stat-glow-${i}`, {
           opacity: 1,
-          duration: 0.6,
-          delay: 1.5,
+          duration: 0.8,
+          delay: 1.8,
           scrollTrigger: {
             trigger: el,
-            start: "top 80%",
+            start: "top 85%",
             toggleActions: "play none none none",
           },
         })
       })
 
-      // Stats cards
+      // Stat cards stagger
       gsap.fromTo(
         ".v5-stat",
-        { y: 50, opacity: 0, scale: 0.9 },
+        { y: 60, opacity: 0, scale: 0.92 },
         {
           y: 0,
           opacity: 1,
           scale: 1,
-          duration: 0.8,
-          stagger: 0.15,
-          ease: "back.out(1.5)",
+          duration: 0.9,
+          stagger: 0.12,
+          ease: "back.out(1.4)",
           scrollTrigger: {
             trigger: ".v5-stats",
-            start: "top 80%",
+            start: "top 85%",
             toggleActions: "play none none none",
           },
         }
@@ -250,15 +236,15 @@ function ProblemSection() {
       // Closing text
       gsap.fromTo(
         ".v5-problem-closing",
-        { y: 30, opacity: 0 },
+        { y: 25, opacity: 0 },
         {
           y: 0,
           opacity: 1,
-          duration: 0.8,
+          duration: 0.9,
           ease: "power2.out",
           scrollTrigger: {
             trigger: ".v5-problem-closing",
-            start: "top 85%",
+            start: "top 88%",
             toggleActions: "play none none none",
           },
         }
@@ -268,7 +254,7 @@ function ProblemSection() {
   )
 
   const problemWords =
-    "Every week you lose time on what does not matter.".split(" ")
+    "Every week, you lose time on what doesn't matter.".split(" ")
 
   return (
     <section className="v5-problem" ref={ref}>
@@ -304,7 +290,8 @@ function ProblemSection() {
       </div>
 
       <p className="v5-problem-closing">
-        40 hours you could spend creating. <strong>TON gives them back.</strong>
+        40 hours you could spend creating.{" "}
+        <strong>TON gives them back.</strong>
       </p>
     </section>
   )
@@ -324,18 +311,9 @@ function PhotoVisual() {
   const GAP = 6
 
   const colors = [
-    "#0a2a1e",
-    "#0f3325",
-    "#143d2d",
-    "#0d2920",
-    "#112e24",
-    "#163f2f",
-    "#0b2b1f",
-    "#103426",
-    "#153e2e",
-    "#0e2a21",
-    "#122f25",
-    "#173f30",
+    "#0a2a1e", "#0f3325", "#143d2d", "#0d2920",
+    "#112e24", "#163f2f", "#0b2b1f", "#103426",
+    "#153e2e", "#0e2a21", "#122f25", "#173f30",
   ]
 
   useGSAP(
@@ -362,10 +340,7 @@ function PhotoVisual() {
           opacity: 1,
           scale: 1,
           duration: 1.5,
-          stagger: {
-            each: 0.04,
-            from: "center",
-          },
+          stagger: { each: 0.04, from: "center" },
           ease: "back.out(1.5)",
           scrollTrigger: {
             trigger: containerRef.current,
@@ -375,15 +350,14 @@ function PhotoVisual() {
         }
       )
 
-      // Continuous floating animation
       thumbs.forEach((thumb, i) => {
         gsap.to(thumb, {
-          y: `+=${Math.sin(i) * 8}`,
-          duration: 2 + Math.random(),
+          y: `+=${Math.sin(i) * 6}`,
+          duration: 2.5 + Math.random(),
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut",
-          delay: i * 0.1,
+          delay: i * 0.08,
         })
       })
     },
@@ -428,15 +402,12 @@ function FinanceVisual() {
 
       gsap.fromTo(
         barEls,
-        {
-          width: 0,
-          opacity: 0,
-        },
+        { width: 0, opacity: 0 },
         {
           width: (i: number) => `${bars[i].width}%`,
           opacity: 1,
-          duration: 1.5,
-          stagger: 0.12,
+          duration: 1.8,
+          stagger: 0.1,
           ease: "power3.out",
           scrollTrigger: {
             trigger: containerRef.current,
@@ -446,16 +417,15 @@ function FinanceVisual() {
         }
       )
 
-      // Pulse effect on the highest bar
       const maxBar = barEls[4]
       if (maxBar) {
         gsap.to(maxBar, {
-          boxShadow: "0 0 20px rgba(255, 107, 53, 0.5)",
-          duration: 1,
+          boxShadow: "0 0 20px rgba(255, 107, 53, 0.4)",
+          duration: 1.2,
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut",
-          delay: 1.5,
+          delay: 2,
         })
       }
     },
@@ -475,7 +445,7 @@ function FinanceVisual() {
                 }}
                 className="v5-finance-bar"
                 style={{
-                  background: `linear-gradient(90deg, ${bar.color}40, ${bar.color})`,
+                  background: `linear-gradient(90deg, ${bar.color}30, ${bar.color})`,
                 }}
               />
             </div>
@@ -502,14 +472,8 @@ function GrowthVisual() {
   ]
 
   const connections: [number, number][] = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
-    [0, 5],
-    [2, 4],
-    [5, 4],
-    [4, 6],
-    [3, 6],
+    [0, 1], [1, 2], [2, 3], [0, 5],
+    [2, 4], [5, 4], [4, 6], [3, 6],
   ]
 
   useGSAP(
@@ -544,7 +508,6 @@ function GrowthVisual() {
         "-=0.3"
       )
 
-      // Continuous node pulse
       nodeEls.forEach((node, i) => {
         gsap.to(node, {
           attr: { r: 7 },
@@ -647,13 +610,13 @@ function AgentsSection() {
         gsap.fromTo(
           el,
           {
-            x: isReversed ? 80 : -80,
+            x: isReversed ? 60 : -60,
             opacity: 0,
           },
           {
             x: 0,
             opacity: 1,
-            duration: 1,
+            duration: 1.2,
             ease: "power3.out",
             scrollTrigger: {
               trigger: el,
@@ -669,7 +632,6 @@ function AgentsSection() {
 
   return (
     <section className="v5-agents" ref={ref}>
-      {/* Agent 1 — Production */}
       <div className="v5-agent">
         <div className="v5-agent-info">
           <div className="v5-agent-index">01 — Production Agent</div>
@@ -682,7 +644,6 @@ function AgentsSection() {
         <PhotoVisual />
       </div>
 
-      {/* Agent 2 — Finance */}
       <div className="v5-agent reverse">
         <div className="v5-agent-info">
           <div className="v5-agent-index">02 — Finance Agent</div>
@@ -695,7 +656,6 @@ function AgentsSection() {
         <FinanceVisual />
       </div>
 
-      {/* Agent 3 — Growth */}
       <div className="v5-agent">
         <div className="v5-agent-info">
           <div className="v5-agent-index">03 — Growth Agent</div>
@@ -722,17 +682,17 @@ function CtaSection() {
     () => {
       gsap.fromTo(
         ref.current!.children,
-        { y: 40, opacity: 0, scale: 0.95 },
+        { y: 40, opacity: 0, scale: 0.96 },
         {
           y: 0,
           opacity: 1,
           scale: 1,
-          duration: 0.8,
-          stagger: 0.15,
+          duration: 1,
+          stagger: 0.12,
           ease: "power3.out",
           scrollTrigger: {
             trigger: ref.current,
-            start: "top 75%",
+            start: "top 78%",
             toggleActions: "play none none none",
           },
         }
@@ -749,7 +709,7 @@ function CtaSection() {
       </p>
       <div className="v5-cta-actions">
         <SignUpButton mode="modal">
-          <Button size="lg" className="v5-cta-btn !rounded-lg">
+          <Button size="lg" className="v5-cta-btn !rounded-full">
             Request access
           </Button>
         </SignUpButton>
@@ -759,21 +719,173 @@ function CtaSection() {
 }
 
 /* ═══════════════════════════════════════════
+   LOADING SCREEN
+   ═══════════════════════════════════════════ */
+
+function LoadingScreen({
+  ready,
+  onComplete,
+}: {
+  ready: boolean
+  onComplete: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const hasTriggered = useRef(false)
+
+  useEffect(() => {
+    if (!ready || hasTriggered.current) return
+    hasTriggered.current = true
+
+    // Small delay to ensure the scene has stabilized
+    const timeout = setTimeout(() => {
+      const el = ref.current
+      if (!el) return
+
+      const tl = gsap.timeline({
+        onComplete: () => onComplete(),
+      })
+
+      // Collapse the progress bar
+      tl.to(".v5-loader-progress-fill", {
+        width: "100%",
+        duration: 0.4,
+        ease: "power2.out",
+      })
+        // Flash the ring
+        .to(".v5-loader-ring", {
+          scale: 1.3,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+        }, "-=0.1")
+        // Fade out text
+        .to(".v5-loader-text", {
+          opacity: 0,
+          y: -20,
+          duration: 0.3,
+          ease: "power2.in",
+        }, "-=0.4")
+        // Wipe the whole loader away
+        .to(el, {
+          opacity: 0,
+          duration: 0.6,
+          ease: "power2.inOut",
+        })
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [ready, onComplete])
+
+  // Animate progress bar to ~90% while loading
+  useEffect(() => {
+    if (ready) return
+    gsap.to(".v5-loader-progress-fill", {
+      width: "90%",
+      duration: 4,
+      ease: "power1.out",
+    })
+  }, [ready])
+
+  return (
+    <div ref={ref} className="v5-loader">
+      <div className="v5-loader-inner">
+        {/* Animated ring */}
+        <div className="v5-loader-ring">
+          <svg viewBox="0 0 100 100" fill="none">
+            <circle
+              cx="50"
+              cy="50"
+              r="42"
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="1"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="42"
+              stroke="url(#loaderGradient)"
+              strokeWidth="1.5"
+              strokeDasharray="264"
+              strokeDashoffset="200"
+              strokeLinecap="round"
+              className="v5-loader-arc"
+            />
+            <defs>
+              <linearGradient
+                id="loaderGradient"
+                x1="0"
+                y1="0"
+                x2="100"
+                y2="100"
+              >
+                <stop offset="0%" stopColor="#00e5a0" />
+                <stop offset="100%" stopColor="#a855f7" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <div className="v5-loader-text">
+          <span className="v5-loader-title">TON</span>
+          <span className="v5-loader-subtitle">Initializing singularity</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="v5-loader-progress">
+          <div className="v5-loader-progress-fill" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
    PAGE
    ═══════════════════════════════════════════ */
 
 export default function LandingV5() {
+  const [sceneReady, setSceneReady] = useState(false)
+  const [loaderDone, setLoaderDone] = useState(false)
+  const [fontsReady, setFontsReady] = useState(false)
+
+  // Wait for fonts
+  useEffect(() => {
+    if (typeof document === "undefined") return
+    document.fonts.ready.then(() => setFontsReady(true))
+  }, [])
+
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true)
+  }, [])
+
+  // Both scene + fonts loaded → start exit animation
+  const allReady = sceneReady && fontsReady
+
+  const handleLoaderExit = useCallback(() => {
+    setLoaderDone(true)
+  }, [])
+
   return (
     <div className="v5">
-      <BlackHoleThree />
-      {/* Floating ambient orbs */}
+      {/* Loading screen */}
+      {!loaderDone && (
+        <LoadingScreen ready={allReady} onComplete={handleLoaderExit} />
+      )}
+
+      <BlackHoleThree onReady={handleSceneReady} />
+
+      {/* Ambient floating orbs */}
       <div className="v5-orb v5-orb-1" />
       <div className="v5-orb v5-orb-2" />
       <div className="v5-orb v5-orb-3" />
+
       <div className="v5-content">
         <HeaderV5 />
-        <HeroSection />
-        <CosmicDivider />
+        <HeroSection ready={loaderDone} />
+
+        {/* Empty space to let the black hole zoom effect breathe */}
+        <div className="v5-descent-spacer" />
+
         <ProblemSection />
         <MarqueeTicker />
         <AgentsSection />
