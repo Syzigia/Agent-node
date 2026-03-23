@@ -272,7 +272,7 @@ function ProblemSection() {
 
       <div className="v5-stats">
         {stats.map((s, i) => (
-          <div key={i} className="v5-stat">
+          <div key={i} className="v5-stat v5-glass-panel">
             <div className="v5-stat-number">
               <span
                 ref={(el) => {
@@ -290,8 +290,7 @@ function ProblemSection() {
       </div>
 
       <p className="v5-problem-closing">
-        40 hours you could spend creating.{" "}
-        <strong>TON gives them back.</strong>
+        40 hours you could spend creating. <strong>TON gives them back.</strong>
       </p>
     </section>
   )
@@ -311,9 +310,18 @@ function PhotoVisual() {
   const GAP = 6
 
   const colors = [
-    "#0a2a1e", "#0f3325", "#143d2d", "#0d2920",
-    "#112e24", "#163f2f", "#0b2b1f", "#103426",
-    "#153e2e", "#0e2a21", "#122f25", "#173f30",
+    "#0a2a1e",
+    "#0f3325",
+    "#143d2d",
+    "#0d2920",
+    "#112e24",
+    "#163f2f",
+    "#0b2b1f",
+    "#103426",
+    "#153e2e",
+    "#0e2a21",
+    "#122f25",
+    "#173f30",
   ]
 
   useGSAP(
@@ -472,8 +480,14 @@ function GrowthVisual() {
   ]
 
   const connections: [number, number][] = [
-    [0, 1], [1, 2], [2, 3], [0, 5],
-    [2, 4], [5, 4], [4, 6], [3, 6],
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [0, 5],
+    [2, 4],
+    [5, 4],
+    [4, 6],
+    [3, 6],
   ]
 
   useGSAP(
@@ -583,7 +597,7 @@ function MarqueeTicker() {
   const items = [...marqueeItems, ...marqueeItems]
 
   return (
-    <div className="v5-marquee">
+    <div className="v5-marquee v5-glass-panel">
       <div className="v5-marquee-track">
         {items.map((item, i) => (
           <span key={i} className="v5-marquee-item">
@@ -632,7 +646,7 @@ function AgentsSection() {
 
   return (
     <section className="v5-agents" ref={ref}>
-      <div className="v5-agent">
+      <div className="v5-agent v5-glass-panel">
         <div className="v5-agent-info">
           <div className="v5-agent-index">01 — Production Agent</div>
           <h3 className="v5-agent-title">Precision batch editing.</h3>
@@ -644,7 +658,7 @@ function AgentsSection() {
         <PhotoVisual />
       </div>
 
-      <div className="v5-agent reverse">
+      <div className="v5-agent reverse v5-glass-panel">
         <div className="v5-agent-info">
           <div className="v5-agent-index">02 — Finance Agent</div>
           <h3 className="v5-agent-title">Your cash flow, protected.</h3>
@@ -656,7 +670,7 @@ function AgentsSection() {
         <FinanceVisual />
       </div>
 
-      <div className="v5-agent">
+      <div className="v5-agent v5-glass-panel">
         <div className="v5-agent-info">
           <div className="v5-agent-index">03 — Growth Agent</div>
           <h3 className="v5-agent-title">From portfolio to revenue.</h3>
@@ -752,19 +766,27 @@ function LoadingScreen({
         ease: "power2.out",
       })
         // Flash the ring
-        .to(".v5-loader-ring", {
-          scale: 1.3,
-          opacity: 0,
-          duration: 0.5,
-          ease: "power2.in",
-        }, "-=0.1")
+        .to(
+          ".v5-loader-ring",
+          {
+            scale: 1.3,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power2.in",
+          },
+          "-=0.1"
+        )
         // Fade out text
-        .to(".v5-loader-text", {
-          opacity: 0,
-          y: -20,
-          duration: 0.3,
-          ease: "power2.in",
-        }, "-=0.4")
+        .to(
+          ".v5-loader-text",
+          {
+            opacity: 0,
+            y: -20,
+            duration: 0.3,
+            ease: "power2.in",
+          },
+          "-=0.4"
+        )
         // Wipe the whole loader away
         .to(el, {
           opacity: 0,

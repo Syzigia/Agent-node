@@ -466,7 +466,7 @@ export default function DomainAgentsSection() {
           return (
             <div
               key={agent.id}
-              className={`domain-agent-card ${index % 2 === 1 ? "reverse" : ""}`}
+              className={`domain-agent-card v5-glass-panel ${index % 2 === 1 ? "reverse" : ""}`}
             >
               <div className="domain-agent-content">
                 <div className="domain-agent-meta">
