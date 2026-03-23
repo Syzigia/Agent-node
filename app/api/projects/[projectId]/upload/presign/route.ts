@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 import { getUserId } from "@/lib/auth"
 import { getProject } from "@/src/mastra/db"
-import { createS3Client, s3Config } from "@/src/mastra/workspace/s3"
+import { createS3Client, getS3Config } from "@/src/mastra/workspace/s3"
 
 type Params = { params: Promise<{ projectId: string }> }
 
@@ -69,6 +69,7 @@ export async function POST(req: Request, { params }: Params) {
     )
   }
 
+  const s3Config = getS3Config()
   const s3Client = createS3Client()
   const usedNames = new Map<string, number>()
 

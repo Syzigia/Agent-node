@@ -1,10 +1,10 @@
-import { Agent } from "@mastra/core/agent";
-import { TokenLimiterProcessor } from "@mastra/core/processors";
-import { coordinatorMemory } from "../../memory";
-import { productionAgent } from "../production";
-import { audioVideoAgent } from "../audio-video";
-import { gpt53ChatModelId } from "../../models/azure-openai";
-import { photosAgent } from "../photos";
+import { Agent } from "@mastra/core/agent"
+import { TokenLimiterProcessor } from "@mastra/core/processors"
+import { coordinatorMemory } from "../../memory"
+import { productionAgent } from "../production"
+import { audioVideoAgent } from "../audio-video"
+import { gpt53ChatModelId } from "../../models/azure-openai"
+import { photosAgent } from "../photos"
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -38,29 +38,34 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    - If the user says "wild_project.mp4", pass "wild_project.mp4" — DO NOT add folders or prefixes.
    - NEVER invent absolute paths like /foo, /tmp, etc.
 
-2. **Human approval**: For audio/video tasks involving cuts or modifications,
+2. **Workspace tool arguments**: NEVER send null for optional tool fields.
+   - If an optional field is not needed, omit it entirely.
+   - Applies especially to list/search filters such as exclude, extension, and pattern.
+
+3. **Human approval**: For audio/video tasks involving cuts or modifications,
    the audio-video-agent has its own human approval flow (HITL).
    Do not force or speed up that process — the human must always review before changes are applied.
 
-3. **runId**: The audio-video-agent returns a runId when starting workflows.
+4. **runId**: The audio-video-agent returns a runId when starting workflows.
    When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
   model: gpt53ChatModelId,
   agents: { productionAgent, audioVideoAgent, photosAgent },
-  inputProcessors: [
-    new TokenLimiterProcessor(120_000),
-  ],
+  inputProcessors: [new TokenLimiterProcessor(120_000)],
   defaultOptions: {
     delegation: {
       messageFilter: ({ messages }) => {
         return messages
-          .filter(m => {
-            const parts = (m as any).content?.parts;
-            if (!Array.isArray(parts)) return true;
-            return !parts.every((p: any) => p.type === "tool-invocation" || p.type === "tool-result");
+          .filter((m) => {
+            const parts = (m as any).content?.parts
+            if (!Array.isArray(parts)) return true
+            return !parts.every(
+              (p: any) =>
+                p.type === "tool-invocation" || p.type === "tool-result"
+            )
           })
-          .slice(-10);
+          .slice(-10)
       },
     },
   },
   memory: coordinatorMemory,
-});
+})

@@ -4,11 +4,20 @@ import * as path from "path"
 import { createHash } from "crypto"
 import type { Mastra } from "@mastra/core"
 import { RequestContext } from "@mastra/core/request-context"
-import { createProjectWorkspace, s3Filesystem, s3Workspace } from "./s3"
+import {
+  createProjectWorkspace,
+  getDefaultS3Filesystem,
+  getDefaultS3Workspace,
+} from "./s3"
+import { localFilesystem, workspace as localWorkspace } from "./index"
 
 export interface ProjectContext {
   s3Prefix: string
   userId: string
+}
+
+function useLocalStudioFilesystem() {
+  return process.env.MASTRA_STUDIO_LOCAL_FS === "1"
 }
 
 /**
@@ -26,7 +35,7 @@ export function createRequestContext(
 
 /**
  * Returns the project-scoped S3 filesystem from tool context.
- * Falls back to the global s3Filesystem (for local dev / Mastra Studio).
+ * Falls back to local filesystem in Studio local mode, otherwise default S3.
  */
 export function getFilesystem(context?: {
   requestContext?: { get: (key: string) => any }
@@ -37,12 +46,17 @@ export function getFilesystem(context?: {
   if (s3Prefix) {
     return createProjectWorkspace(s3Prefix).filesystem
   }
-  return s3Filesystem
+
+  if (useLocalStudioFilesystem()) {
+    return localFilesystem
+  }
+
+  return getDefaultS3Filesystem()
 }
 
 /**
  * Returns the project-scoped workspace from request context.
- * Falls back to the default s3Workspace (for local dev / Mastra Studio).
+ * Falls back to local workspace in Studio local mode, otherwise default S3.
  */
 export function getWorkspace(context?: {
   requestContext?: { get: (key: string) => any }
@@ -53,7 +67,12 @@ export function getWorkspace(context?: {
   if (s3Prefix) {
     return createProjectWorkspace(s3Prefix).workspace
   }
-  return s3Workspace
+
+  if (useLocalStudioFilesystem()) {
+    return localWorkspace
+  }
+
+  return getDefaultS3Workspace()
 }
 
 /**

@@ -11,41 +11,56 @@ import type {
   FileContent,
 } from "@mastra/core/workspace"
 
-const s3Bucket = process.env.S3_BUCKET
-const s3Region = process.env.S3_REGION || "auto"
-const s3Endpoint = process.env.S3_ENDPOINT
-const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID
-const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY
-const s3Prefix = process.env.S3_PREFIX || "test"
-
-if (!s3Bucket) {
-  throw new Error("S3_BUCKET environment variable is required")
-}
-if (!s3Endpoint) {
-  throw new Error("S3_ENDPOINT environment variable is required")
-}
-if (!s3AccessKeyId || !s3SecretAccessKey) {
-  throw new Error(
-    "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY environment variables are required"
-  )
+type ResolvedS3Config = {
+  bucket: string
+  region: string
+  endpoint: string
+  accessKeyId: string
+  secretAccessKey: string
 }
 
-export const s3Config = {
-  bucket: s3Bucket,
-  region: s3Region,
-  endpoint: s3Endpoint,
-  accessKeyId: s3AccessKeyId,
-  secretAccessKey: s3SecretAccessKey,
-} as const
+function requireS3Config(): ResolvedS3Config {
+  const bucket = process.env.S3_BUCKET
+  const region = process.env.S3_REGION || "auto"
+  const endpoint = process.env.S3_ENDPOINT
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY
+
+  if (!bucket) {
+    throw new Error("S3_BUCKET environment variable is required")
+  }
+  if (!endpoint) {
+    throw new Error("S3_ENDPOINT environment variable is required")
+  }
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error(
+      "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY environment variables are required"
+    )
+  }
+
+  return {
+    bucket,
+    region,
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
+  }
+}
+
+export function getS3Config() {
+  return requireS3Config()
+}
 
 export function createS3Client() {
+  const s3Config = requireS3Config()
+
   return new S3Client({
-    region: s3Region,
-    endpoint: s3Endpoint,
+    region: s3Config.region,
+    endpoint: s3Config.endpoint,
     forcePathStyle: true,
     credentials: {
-      accessKeyId: s3AccessKeyId!,
-      secretAccessKey: s3SecretAccessKey!,
+      accessKeyId: s3Config.accessKeyId,
+      secretAccessKey: s3Config.secretAccessKey,
     },
   })
 }
@@ -110,29 +125,55 @@ class PatchedS3Filesystem extends S3Filesystem {
   }
 }
 
-/** Default filesystem using S3_PREFIX env var (for local dev / Mastra Studio) */
-export const s3Filesystem = new PatchedS3Filesystem({
-  bucket: s3Bucket,
-  region: s3Region,
-  endpoint: s3Endpoint,
-  accessKeyId: s3AccessKeyId,
-  secretAccessKey: s3SecretAccessKey,
-  prefix: s3Prefix || undefined,
-})
+function getDefaultPrefix() {
+  return process.env.S3_PREFIX || "test"
+}
 
-/** Default workspace using S3_PREFIX env var (for local dev / Mastra Studio) */
-export const s3Workspace = new Workspace({
-  filesystem: s3Filesystem,
-})
+let cachedDefaultS3Filesystem: PatchedS3Filesystem | null = null
+let cachedDefaultS3Workspace: Workspace | null = null
+
+export function getDefaultS3Filesystem() {
+  if (cachedDefaultS3Filesystem) {
+    return cachedDefaultS3Filesystem
+  }
+
+  const s3Config = requireS3Config()
+  const s3Prefix = getDefaultPrefix()
+
+  cachedDefaultS3Filesystem = new PatchedS3Filesystem({
+    bucket: s3Config.bucket,
+    region: s3Config.region,
+    endpoint: s3Config.endpoint,
+    accessKeyId: s3Config.accessKeyId,
+    secretAccessKey: s3Config.secretAccessKey,
+    prefix: s3Prefix || undefined,
+  })
+
+  return cachedDefaultS3Filesystem
+}
+
+export function getDefaultS3Workspace() {
+  if (cachedDefaultS3Workspace) {
+    return cachedDefaultS3Workspace
+  }
+
+  cachedDefaultS3Workspace = new Workspace({
+    filesystem: getDefaultS3Filesystem(),
+  })
+
+  return cachedDefaultS3Workspace
+}
 
 /** Creates a project-scoped S3 filesystem and workspace for a given prefix */
 export function createProjectWorkspace(prefix: string) {
+  const s3Config = requireS3Config()
+
   const filesystem = new PatchedS3Filesystem({
-    bucket: s3Bucket!,
-    region: s3Region,
-    endpoint: s3Endpoint!,
-    accessKeyId: s3AccessKeyId!,
-    secretAccessKey: s3SecretAccessKey!,
+    bucket: s3Config.bucket,
+    region: s3Config.region,
+    endpoint: s3Config.endpoint,
+    accessKeyId: s3Config.accessKeyId,
+    secretAccessKey: s3Config.secretAccessKey,
     prefix,
   })
   return {
