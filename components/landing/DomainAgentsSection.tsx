@@ -7,164 +7,6 @@ import { useGSAP } from "@gsap/react"
 
 gsap.registerPlugin(ScrollTrigger)
 
-// Video Agent Component
-function VideoAgentVisual() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const timelineRef = useRef<HTMLDivElement>(null)
-
-  useGSAP(
-    () => {
-      // Timeline animation
-      gsap.fromTo(
-        ".video-timeline-track",
-        { scaleX: 0 },
-        {
-          scaleX: 1,
-          duration: 1.5,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 70%",
-            toggleActions: "play none none none",
-          },
-        }
-      )
-
-      // Playheads stagger animation
-      gsap.fromTo(
-        ".video-playhead",
-        { scale: 0, opacity: 0 },
-        {
-          scale: 1,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "back.out(2)",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 65%",
-            toggleActions: "play none none none",
-          },
-        }
-      )
-
-      // Waveform animation
-      gsap.to(".video-waveform-bar", {
-        height: () => 15 + Math.random() * 25,
-        duration: 0.4,
-        stagger: {
-          each: 0.02,
-          from: "center",
-          repeat: -1,
-          yoyo: true,
-        },
-        ease: "sine.inOut",
-      })
-
-      // Processing indicator
-      gsap.to(".video-processing-dot", {
-        x: 280,
-        duration: 3,
-        repeat: -1,
-        ease: "none",
-      })
-    },
-    { scope: containerRef }
-  )
-
-  return (
-    <div ref={containerRef} className="agent-visual video-agent-visual">
-      {/* Timeline Container */}
-      <div className="video-timeline-container">
-        {/* Video Preview Window */}
-        <div className="video-preview-window">
-          <div className="video-preview-content">
-            <div className="video-frame-grid">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="video-frame"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="video-timecode">00:04:23:15</div>
-        </div>
-
-        {/* Timeline Track */}
-        <div ref={timelineRef} className="video-timeline-track">
-          {/* Audio Waveform */}
-          <div className="video-waveform">
-            {Array.from({ length: 40 }).map((_, i) => (
-              <div
-                key={i}
-                className="video-waveform-bar"
-                style={{ height: `${10 + Math.random() * 20}px` }}
-              />
-            ))}
-          </div>
-
-          {/* Playheads */}
-          <div className="video-playhead playhead-1">
-            <div className="playhead-line" />
-            <div className="playhead-handle">▶</div>
-          </div>
-          <div className="video-playhead playhead-2">
-            <div className="playhead-line" />
-            <div className="playhead-handle">◀</div>
-          </div>
-
-          {/* Processing Indicator */}
-          <div className="video-processing-indicator">
-            <span className="video-processing-label">Processing</span>
-            <div className="video-processing-track">
-              <div className="video-processing-dot" />
-            </div>
-          </div>
-        </div>
-
-        {/* Tool Icons */}
-        <div className="video-tools-row">
-          <div className="video-tool-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M12 3v18M3 12h18M8 8l8 8M16 8l-8 8" />
-            </svg>
-            <span>Limpieza de audio</span>
-          </div>
-          <div className="video-tool-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M9 10l3-3 3 3M9 14l3 3 3-3" />
-            </svg>
-            <span>Moment detection</span>
-          </div>
-          <div className="video-tool-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M7 8h10M7 12h10M7 16h10" />
-            </svg>
-            <span>Auto subtitles</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // Production Agent Component
 function ProductionAgentVisual() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -578,20 +420,6 @@ export default function DomainAgentsSection() {
   const agents = [
     {
       id: "01",
-      title: "Video Agent",
-      subtitle: "The Cosmic Editor",
-      description:
-        "Process audio, detect key moments, generate subtitles, and cut silences automatically. Your editing workflow, accelerated to warp speed.",
-      tools: [
-        "Audio cleanup",
-        "Moment detection",
-        "Automatic subtitles",
-        "Silence cutting",
-      ],
-      visual: VideoAgentVisual,
-    },
-    {
-      id: "02",
       title: "Production Agent",
       subtitle: "The Stellar Engineer",
       description:
@@ -605,7 +433,7 @@ export default function DomainAgentsSection() {
       visual: ProductionAgentVisual,
     },
     {
-      id: "03",
+      id: "02",
       title: "Photo Agent",
       subtitle: "The Galaxy Curator",
       description:
@@ -628,7 +456,7 @@ export default function DomainAgentsSection() {
           Builders of the Creative Universe
         </h2>
         <p className="domain-header-subtitle">
-          Nine specialized Domain Agents. Sixty-eight tools.
+          Specialized Domain Agents for image-first workflows.
           <br />A complete ecosystem for creative professionals.
         </p>
       </div>

@@ -1,13 +1,8 @@
-import { Mastra } from "@mastra/core";
-import { productionAgent } from "./agents/production";
-import { audioVideoAgent } from "./agents/audio-video";
-import { clipSelectorMultimodalAgent } from "./agents/audio-video/clip-selector-multimodal";
-import { coordinatorAgent } from "./agents/coordinator";
-import { silenceCutterWorkflow } from "./workflows/silence-cutter-workflow";
-import { smartHighlightsV2Workflow } from "./workflows/smart-highlights-v2";
-import { subtitleGeneratorWorkflow } from "./workflows/subtitle-generator-workflow";
-import { sharedStore } from "./memory";
-import { MultiResourceAzureGateway } from "./models/multi-resource-azure-gateway";
+import { Mastra } from "@mastra/core"
+import { productionAgent } from "./agents/production"
+import { coordinatorAgent } from "./agents/coordinator"
+import { sharedStore } from "./memory"
+import { MultiResourceAzureGateway } from "./models/multi-resource-azure-gateway"
 import {
   azureApiKey,
   azureApiVersion,
@@ -16,8 +11,8 @@ import {
   azureResourceName,
   gpt53ChatDeployment,
   normalizedAzureDirectBaseUrl,
-} from "./models/azure-openai";
-import { photosAgent } from "./agents/photos";
+} from "./models/azure-openai"
+import { photosAgent } from "./agents/photos"
 
 const directOverrides = normalizedAzureDirectBaseUrl
   ? {
@@ -26,11 +21,10 @@ const directOverrides = normalizedAzureDirectBaseUrl
         apiKey: azureDirectApiKey,
       },
     }
-  : undefined;
+  : undefined
 
 export const mastra = new Mastra({
-  agents: { productionAgent, audioVideoAgent, coordinatorAgent, clipSelectorMultimodalAgent, photosAgent },
-  workflows: { silenceCutterWorkflow, smartHighlightsV2Workflow, subtitleGeneratorWorkflow },
+  agents: { productionAgent, coordinatorAgent, photosAgent },
   gateways: {
     azureOpenAI: new MultiResourceAzureGateway({
       defaultResourceName: azureResourceName,
@@ -41,4 +35,4 @@ export const mastra = new Mastra({
     }),
   },
   storage: sharedStore,
-});
+})

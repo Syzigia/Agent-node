@@ -69,14 +69,6 @@ export async function GET(
       }
     })
 
-    console.log("[chat-history] loaded", {
-      userId,
-      projectId,
-      chatId,
-      threadId: chat.threadId,
-      count: normalizedMessages.length,
-    })
-
     return NextResponse.json({ messages: normalizedMessages })
   } catch {
     return NextResponse.json({ messages: [] })

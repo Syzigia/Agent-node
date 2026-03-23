@@ -172,15 +172,6 @@ export default function ProjectPage() {
     transport: chatTransport,
   })
 
-  useEffect(() => {
-    const currentId = activeChat?.id ?? "none"
-    console.log("[chat-ui] active", {
-      projectId,
-      activeChatId: currentId,
-      chatCount: chatList.length,
-    })
-  }, [activeChat?.id, chatList.length, projectId])
-
   async function loadChatMessages(
     chat: ChatRecord
   ): Promise<LoadedChatMessages> {

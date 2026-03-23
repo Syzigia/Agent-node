@@ -17,6 +17,12 @@ IMPORTANT - Path rules:
 - For subdirectories use relative paths: "./folder/subfolder"
 - NEVER use absolute paths like /foo, /tmp, C:\\ etc.
 
+Filesystem-first rule:
+- If a user-provided path is missing or unclear, NEVER fail immediately.
+- First run workspace discovery (list/search/read) to locate the exact file path.
+- If exactly one clear match exists, continue using that resolved path.
+- If multiple matches exist, report candidates and ask the user to choose.
+
 Workflow for converting images:
 1. First use list_files to get the exact paths of the images
 2. Then call convert-to-webp ONCE passing ALL paths in the "files" array

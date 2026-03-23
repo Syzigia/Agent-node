@@ -26,14 +26,6 @@ export async function getMastraInstance() {
     return cachedMastra
   }
 
-  const deploymentProfile = process.env.DEPLOYMENT_PROFILE ?? "full"
-
-  if (deploymentProfile === "web-lite") {
-    const mod = await import("@/src/mastra/index-web")
-    cachedMastra = mod.mastraWeb
-    return cachedMastra
-  }
-
   const mod = await import("@/src/mastra")
   cachedMastra = mod.mastra
   return cachedMastra

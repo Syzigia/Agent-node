@@ -1,18 +1,18 @@
-import { Memory } from "@mastra/memory";
-import { LibSQLStore } from "@mastra/libsql";
+import { Memory } from "@mastra/memory"
+import { LibSQLStore } from "@mastra/libsql"
 
-const databaseUrl = process.env.DATABASE_URL;
-const databaseToken = process.env.DATABASE_TOKEN;
+const databaseUrl = process.env.DATABASE_URL
+const databaseToken = process.env.DATABASE_TOKEN
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL environment variable is required");
+  throw new Error("DATABASE_URL environment variable is required")
 }
 
 export const sharedStore = new LibSQLStore({
   id: "mastra-storage",
   url: databaseUrl,
   authToken: databaseToken,
-});
+})
 
 /**
  * Memory for the coordinator agent — working memory enabled with a focused
@@ -36,10 +36,10 @@ export const coordinatorMemory = new Memory({
 - **User Preferences**: [any explicit preferences the user has stated, e.g. style, format]`,
     },
   },
-});
+})
 
 /**
- * Memory for sub-agents (audio-video, production) — NO working memory.
+ * Memory for sub-agents (production, photos) — NO working memory.
  *
  * These agents are tool executors delegated to by the coordinator. They don't
  * need to persist user context across sessions — the coordinator already owns
@@ -51,4 +51,4 @@ export const agentMemory = new Memory({
   options: {
     lastMessages: 20,
   },
-});
+})

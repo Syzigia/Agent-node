@@ -2,7 +2,6 @@ import { Agent } from "@mastra/core/agent"
 import { TokenLimiterProcessor } from "@mastra/core/processors"
 import { coordinatorMemory } from "../../memory"
 import { productionAgent } from "../production"
-import { audioVideoAgent } from "../audio-video"
 import { gpt53ChatModelId } from "../../models/azure-openai"
 import { photosAgent } from "../photos"
 
@@ -25,13 +24,6 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 - Adjust gamma/brightness of photos (change-gamma tool with options: apple, srgb, broadcast - saves to gamma_correction folder)
 - Any task related to photo quality or enhancement
 
-### audio-video-agent
-- Process audio or video
-- Extract highlights/clips from a video → use smart-highlights-v2
-- Cut silences from podcasts or videos → use silence-cutter
-- Isolate voice from audio/video → use demucs (local ONNX processing)
-- Any media post-production task
-
 ## Important rules
 
 1. **Paths**: Always pass paths EXACTLY as the user writes them.
@@ -42,14 +34,12 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    - If an optional field is not needed, omit it entirely.
    - Applies especially to list/search filters such as exclude, extension, and pattern.
 
-3. **Human approval**: For audio/video tasks involving cuts or modifications,
-   the audio-video-agent has its own human approval flow (HITL).
-   Do not force or speed up that process — the human must always review before changes are applied.
-
-4. **runId**: The audio-video-agent returns a runId when starting workflows.
-   When the user wants to continue/resume a process, pass the runId to the audio-video-agent.`,
+3. **Filesystem-first resolution**: If a file path is missing, ambiguous, or a delegated tool reports "file not found", ALWAYS run a workspace discovery pass before concluding failure.
+   - Delegate to production-agent to list/search the workspace and find matching candidates.
+   - Retry delegation with the resolved exact path when possible.
+   - Only ask the user to choose when multiple valid candidates remain.`,
   model: gpt53ChatModelId,
-  agents: { productionAgent, audioVideoAgent, photosAgent },
+  agents: { productionAgent, photosAgent },
   inputProcessors: [new TokenLimiterProcessor(120_000)],
   defaultOptions: {
     delegation: {
