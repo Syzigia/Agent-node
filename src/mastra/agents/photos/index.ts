@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent"
 import { gpt5MiniModelId } from "../../models/azure-openai"
 import { agentMemory } from "../../memory"
 import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector"
+import { changeBrightnessTool } from "./tools/adjuest-brightness"
 import { changeGammaTool } from "./tools/change-gamma"
 import { getWorkspace } from "../../workspace/context"
 
@@ -23,7 +24,25 @@ Process:
 2. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 3. Blurry photos are moved to the blurry_photos folder
 
-## 2. Gamma adjustment
+## 2. Brightness adjustment
+
+When to use:
+- The user wants simple brightness adjustment for one or more photos
+- The user mentions "brighter", "darker", "increase brightness", "decrease brightness"
+- The user wants a percentage-based brightness change
+
+Available parameters:
+- files: array of image file paths
+- increase: boolean (true to brighten, false to darken)
+- percentage: number (e.g., 20 for 20% brighter or darker)
+
+Process:
+1. Ask the user for the percentage and whether to increase or decrease
+2. Call change-brightness with files, increase boolean, and percentage
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Brightness-adjusted images are saved to the brightness_adjustment folder
+
+## 3. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -61,6 +80,6 @@ When that happens:
 - If multiple matches are found, return candidate paths and ask the user to pick one.`,
   model: gpt5MiniModelId,
   workspace: ({ requestContext }) => getWorkspace({ requestContext }),
-  tools: { blurredPhotosDetectorTool, changeGammaTool },
+  tools: { blurredPhotosDetectorTool, changeBrightnessTool, changeGammaTool },
   memory: agentMemory,
 })
