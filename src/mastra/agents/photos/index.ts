@@ -5,6 +5,8 @@ import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector"
 import { changeBrightnessTool } from "./tools/adjuest-brightness"
 import { changeContrastTool } from "./tools/adjust-contrast"
 import { changeGammaTool } from "./tools/change-gamma"
+import { recoverHighlightsTool } from "./tools/recover-highlights"
+import { recoverShadowsTool } from "./tools/recover-shadows"
 import { getWorkspace } from "../../workspace/context"
 
 export const photosAgent = new Agent({
@@ -62,7 +64,53 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Contrast-adjusted images are saved to the contrast_adjustment folder
 
-## 4. Gamma adjustment
+## 5. Shadow recovery
+
+When to use:
+- The user wants to recover detail in dark/shadow areas
+- The user asks to "see more in the dark areas" or "recover shadows"
+- The user mentions "lift shadows" or "shadow detail"
+
+Available parameters:
+- files: array of image file paths
+- value: number from 0 to 100
+  - 0-30: "Subtle" - Lightly lifts shadows, minimal noise
+  - 31-60: "Moderate" - Recovers detail in deep shadows, good balance (recommended)
+  - 61-85: "Intense" - Maximum shadow recovery, may add some noise
+  - 86-100: "Aggressive" - Lifts all shadows significantly, noticeable noise possible
+
+Technical note: Uses Lab color space processing - converts image to Lab, applies curve to L (lightness) channel, then converts back to sRGB. This preserves colors while adjusting luminance.
+
+Process:
+1. Ask the user for the value if not provided. Explain: "What level of shadow recovery would you like? 0-30 for subtle, 31-60 for moderate (recommended), 61-85 for intense, or 86-100 for aggressive."
+2. Call recover-shadows with files and value
+3. Files are processed in parallel (up to 5 at a time)
+4. Recovered images are saved to the shadow_recovery folder
+
+## 6. Highlight recovery
+
+When to use:
+- The user wants to fix overexposed/"blown out" bright areas
+- The user asks to "recover highlights" or "fix bright areas"
+- The user mentions "blown out sky" or "overexposed windows"
+
+Available parameters:
+- files: array of image file paths
+- value: number from 0 to 100
+  - 0-30: "Subtle" - Slightly softens highlights, natural look
+  - 31-60: "Moderate" - Recovers detail in skies, skin highlights, good balance (recommended)
+  - 61-85: "Intense" - Recovers detail in windows, clouds, dramatic effect
+  - 86-100: "Aggressive" - Darkens highlights significantly, may look artificial
+
+Technical note: Uses Lab color space processing - converts image to Lab, applies curve to L (lightness) channel to darken highlights, then converts back to sRGB.
+
+Process:
+1. Ask the user for the value if not provided. Explain: "What level of highlight recovery would you like? 0-30 for subtle, 31-60 for moderate (recommended), 61-85 for intense, or 86-100 for aggressive."
+2. Call recover-highlights with files and value
+3. Files are processed in parallel (up to 5 at a time)
+4. Recovered images are saved to the highlight_recovery folder
+
+## 7. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -105,6 +153,8 @@ When that happens:
     changeBrightnessTool,
     changeContrastTool,
     changeGammaTool,
+    recoverHighlightsTool,
+    recoverShadowsTool,
   },
   memory: agentMemory,
 })
