@@ -5,6 +5,7 @@ import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector"
 import { changeBrightnessTool } from "./tools/adjuest-brightness"
 import { changeContrastTool } from "./tools/adjust-contrast"
 import { changeGammaTool } from "./tools/change-gamma"
+import { changeTemperatureTool } from "./tools/adjust-temperature"
 import { recoverHighlightsTool } from "./tools/recover-highlights"
 import { recoverShadowsTool } from "./tools/recover-shadows"
 import { getWorkspace } from "../../workspace/context"
@@ -63,6 +64,27 @@ Process:
 2. Call adjust-contrast with files and value
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Contrast-adjusted images are saved to the contrast_adjustment folder
+
+## 4. Temperature adjustment
+
+When to use:
+- The user wants the image to look warmer/yellower or cooler/bluer
+- The user mentions "temperature", "warm tone", "cool tone", "add warmth", "make it colder"
+
+Available parameters:
+- files: array of image file paths
+- value: number from -100 to 100
+  - -100 to -40: Cold intense (blue cast)
+  - -39 to -10: Cold soft
+  - 0: Neutral (no change)
+  - 10 to 39: Warm soft
+  - 40 to 100: Warm intense (yellow cast)
+
+Process:
+1. Ask the user for the value if not provided. Explain the available ranges (-100 to 100)
+2. Call adjust-temperature with files and value
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Temperature-adjusted images are saved to the temperature_adjustment folder
 
 ## 5. Shadow recovery
 
@@ -152,6 +174,7 @@ When that happens:
     blurredPhotosDetectorTool,
     changeBrightnessTool,
     changeContrastTool,
+    changeTemperatureTool,
     changeGammaTool,
     recoverHighlightsTool,
     recoverShadowsTool,
