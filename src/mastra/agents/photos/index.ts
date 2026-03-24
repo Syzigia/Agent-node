@@ -3,6 +3,7 @@ import { gpt5MiniModelId } from "../../models/azure-openai"
 import { agentMemory } from "../../memory"
 import { blurredPhotosDetectorTool } from "./tools/blurred-photos-detector"
 import { changeBrightnessTool } from "./tools/adjuest-brightness"
+import { changeContrastTool } from "./tools/adjust-contrast"
 import { changeGammaTool } from "./tools/change-gamma"
 import { getWorkspace } from "../../workspace/context"
 
@@ -42,7 +43,26 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Brightness-adjusted images are saved to the brightness_adjustment folder
 
-## 3. Gamma adjustment
+## 3. Contrast adjustment
+
+When to use:
+- The user wants to adjust contrast for one or more photos
+- The user mentions "more contrast", "less contrast", "contrast adjustment"
+
+Available parameters:
+- files: array of image file paths
+- value: number from -100 to 100
+  - Positive values (0 to 100): increase contrast (more intense difference between light and dark)
+  - Negative values (-100 to 0): decrease contrast (more muted, washed out look)
+  - 0: no change
+
+Process:
+1. Ask the user for the contrast value if not provided
+2. Call adjust-contrast with files and value
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Contrast-adjusted images are saved to the contrast_adjustment folder
+
+## 4. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -80,6 +100,11 @@ When that happens:
 - If multiple matches are found, return candidate paths and ask the user to pick one.`,
   model: gpt5MiniModelId,
   workspace: ({ requestContext }) => getWorkspace({ requestContext }),
-  tools: { blurredPhotosDetectorTool, changeBrightnessTool, changeGammaTool },
+  tools: {
+    blurredPhotosDetectorTool,
+    changeBrightnessTool,
+    changeContrastTool,
+    changeGammaTool,
+  },
   memory: agentMemory,
 })
