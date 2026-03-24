@@ -7,6 +7,7 @@ import { changeContrastTool } from "./tools/adjust-contrast"
 import { changeGammaTool } from "./tools/change-gamma"
 import { changeTemperatureTool } from "./tools/adjust-temperature"
 import { changeTintTool } from "./tools/adjust-tint"
+import { changeSaturationTool } from "./tools/adjust-saturation"
 import { recoverHighlightsTool } from "./tools/recover-highlights"
 import { recoverShadowsTool } from "./tools/recover-shadows"
 import { getWorkspace } from "../../workspace/context"
@@ -111,7 +112,31 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Tint-adjusted images are saved to the tint_adjustment folder with suffix "_tint{value}" (e.g., "_tint-30" for -30, "_tint45" for 45)
 
-## 6. Shadow recovery
+## 6. Saturation adjustment
+
+When to use:
+- The user wants to make colors more vivid or more muted
+- The user mentions "saturation", "more colorful", "less colorful", "black and white"
+- The user wants to convert to grayscale or boost colors
+
+Available parameters:
+- files: array of image file paths
+- value: number from 0 to 200
+  - 0: Black and white (completely desaturated)
+  - 50-90: Very muted colors
+  - 100: Original (no change)
+  - 110-150: More vivid colors
+  - 160-200: Highly saturated/explosive colors
+
+Technical note: Uses sharp's modulate({ saturation }) which applies uniform saturation adjustment to all colors equally.
+
+Process:
+1. Ask the user for the value if not provided. Explain: "What saturation level would you like? 0 for black and white, 50-90 for muted, 100 for original, 110-150 for vivid, 160-200 for highly saturated."
+2. Call adjust-saturation with files and value
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Saturation-adjusted images are saved to the saturation_adjustment folder with suffix "_saturation{value}" (e.g., "_saturation0" for 0, "_saturation150" for 150)
+
+## 7. Shadow recovery
 
 When to use:
 - The user wants to recover detail in dark/shadow areas
@@ -134,7 +159,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the shadow_recovery folder
 
-## 6. Highlight recovery
+## 8. Highlight recovery
 
 When to use:
 - The user wants to fix overexposed/"blown out" bright areas
@@ -157,7 +182,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the highlight_recovery folder
 
-## 7. Gamma adjustment
+## 9. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -201,6 +226,7 @@ When that happens:
     changeContrastTool,
     changeTemperatureTool,
     changeTintTool,
+    changeSaturationTool,
     changeGammaTool,
     recoverHighlightsTool,
     recoverShadowsTool,
