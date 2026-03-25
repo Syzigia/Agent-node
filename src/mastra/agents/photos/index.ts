@@ -8,6 +8,8 @@ import { changeGammaTool } from "./tools/change-gamma"
 import { changeTemperatureTool } from "./tools/adjust-temperature"
 import { changeTintTool } from "./tools/adjust-tint"
 import { changeSaturationTool } from "./tools/adjust-saturation"
+import { adjustVignetteTool } from "./tools/adjust-vignette"
+import { adjustGrainTool } from "./tools/adjust-grain"
 import { recoverHighlightsTool } from "./tools/recover-highlights"
 import { recoverShadowsTool } from "./tools/recover-shadows"
 import { getWorkspace } from "../../workspace/context"
@@ -136,7 +138,53 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Saturation-adjusted images are saved to the saturation_adjustment folder with suffix "_saturation{value}" (e.g., "_saturation0" for 0, "_saturation150" for 150)
 
-## 7. Shadow recovery
+## 7. Vignette adjustment
+
+When to use:
+- The user wants to draw attention to the center of the image
+- The user mentions "vignette", "dark edges", "cinematic look", "vintage effect"
+- The user wants to create focus on a portrait subject or add drama to landscapes
+
+Available parameters:
+- files: array of image file paths
+- intensity: number from 0 to 100
+  - 0: No effect
+  - 30-50: Soft vignette (recommended for portraits, subtle effect)
+  - 60-80: Moderate vignette (visible effect, good for landscapes)
+  - 90-100: Strong vignette (dramatic cinematic effect)
+
+Technical note: Creates a radial gradient overlay (transparent center to dark edges) using a generated gradient image composited with multiply blend mode over the original image.
+
+Process:
+1. Ask the user for the intensity if not provided. Explain: "What vignette intensity would you like? 0 for no effect, 30-50 for soft (recommended for portraits), 60-80 for moderate, 90-100 for strong dramatic effect."
+2. Call adjust-vignette with files and intensity
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Vignette-adjusted images are saved to the vignette_adjustment folder with suffix "_vignette{intensity}" (e.g., "_vignette40" for intensity 40)
+
+## 8. Grain adjustment
+
+When to use:
+- The user wants a film-like texture or analog look
+- The user mentions "grain", "noise", "film look", "cinematic", "analog"
+- The user wants to simulate high-ISO film or hide compression artifacts
+
+Available parameters:
+- files: array of image file paths
+- intensity: number from 0 to 100
+  - 0: No effect
+  - 20-40: Subtle grain (discreet analog look, good for portraits)
+  - 50-70: Moderate grain (standard cinematic look)
+  - 80-100: Strong grain (high-ISO 3200 film, very textured)
+
+Technical note: Generates a grayscale Gaussian noise layer using Box-Muller transform and composites it over the original image using 'overlay' blend mode for realistic film grain effect.
+
+Process:
+1. Ask the user for the intensity if not provided. Explain: "What grain intensity would you like? 0 for no effect, 20-40 for subtle grain, 50-70 for moderate cinematic look, 80-100 for strong high-ISO film effect."
+2. Call adjust-grain with files and intensity
+3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
+4. Grain-adjusted images are saved to the grain_adjustment folder with suffix "_grain{intensity}" (e.g., "_grain35" for intensity 35)
+
+## 9. Shadow recovery
 
 When to use:
 - The user wants to recover detail in dark/shadow areas
@@ -159,7 +207,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the shadow_recovery folder
 
-## 8. Highlight recovery
+## 10. Highlight recovery
 
 When to use:
 - The user wants to fix overexposed/"blown out" bright areas
@@ -182,7 +230,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the highlight_recovery folder
 
-## 9. Gamma adjustment
+## 11. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -227,6 +275,8 @@ When that happens:
     changeTemperatureTool,
     changeTintTool,
     changeSaturationTool,
+    adjustVignetteTool,
+    adjustGrainTool,
     changeGammaTool,
     recoverHighlightsTool,
     recoverShadowsTool,
