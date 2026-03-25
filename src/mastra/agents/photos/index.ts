@@ -19,6 +19,7 @@ import { recoverShadowsTool } from "./tools/recover-shadows"
 import { applySharpenTool } from "./tools/apply-sharpen"
 import { applyBlurTool } from "./tools/apply-blur"
 import { detectEdgesTool } from "./tools/detect-edges"
+import { applyLutTool } from "./tools/apply-lut"
 import { getWorkspace } from "../../workspace/context"
 
 export const photosAgent = new Agent({
@@ -385,6 +386,36 @@ Process:
 4. Files are processed in parallel (up to 5 at a time)
 5. Edge-detected images are saved to the "edge_detection" folder with suffix "_edges{Direction}"
 
+## 16. LUT (Look-Up Table) Application
+
+When to use:
+- The user wants to apply color grading/correction to photos
+- The user mentions "LUT", "color grading", "film look", "cinematic"
+- The user wants to apply film emulation or stylized color effects
+- The user wants to match colors between different cameras/sources
+
+Available parameters:
+- files: array of image file paths
+- lutFile: path to the .cube LUT file
+
+LUT types supported:
+- 1D LUT: simpler color curves, one-dimensional transformations
+- 3D LUT: complex color transformations (more common for professional color grading)
+
+Technical note: Parses the .cube file and applies trilinear interpolation for 3D LUTs or linear interpolation for 1D LUTs. Alpha channel is preserved for images with transparency.
+
+Process:
+1. Ask the user for the LUT file path if not provided
+2. Verify the LUT file exists and is a valid .cube file
+3. Call apply-lut with files and lutFile
+4. Files are processed in parallel (up to 5 at a time)
+5. LUT-applied images are saved to the "lut_applied" folder with "_lut" suffix before the extension
+6. Original image format is preserved (JPG stays JPG, PNG stays PNG, etc.)
+
+Output examples:
+- "photo.jpg" → "lut_applied/photo_lut.jpg"
+- "landscape.png" → "lut_applied/landscape_lut.png"
+
 ## Batch processing and timeout handling
 If a batch is too large and approaches timeout, tools may return partial results with a remaining array.
 When that happens:
@@ -423,6 +454,7 @@ When that happens:
     applySharpenTool,
     applyBlurTool,
     detectEdgesTool,
+    applyLutTool,
   },
   memory: agentMemory,
 })
