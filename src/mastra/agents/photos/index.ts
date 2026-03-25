@@ -16,6 +16,9 @@ import { applyNegativeTool } from "./tools/apply-negative"
 import { applyThresholdTool } from "./tools/apply-threshold"
 import { recoverHighlightsTool } from "./tools/recover-highlights"
 import { recoverShadowsTool } from "./tools/recover-shadows"
+import { applySharpenTool } from "./tools/apply-sharpen"
+import { applyBlurTool } from "./tools/apply-blur"
+import { detectEdgesTool } from "./tools/detect-edges"
 import { getWorkspace } from "../../workspace/context"
 
 export const photosAgent = new Agent({
@@ -305,6 +308,83 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Gamma-adjusted images are saved to the gamma_correction folder
 
+## 13. Sharpen
+
+When to use:
+- The user wants to make an image sharper and more detailed
+- The user mentions "sharpen", "sharpening", "more detail", "enhance edges"
+- The user wants to fix slightly soft or out-of-focus images
+
+Available parameters:
+- files: array of image file paths
+- sigma: number from 0.3 to 10 (default 1.0)
+  - 0.3-0.8: Subtle sharpening (minimal noise, good for portraits)
+  - 1.0-1.5: Standard sharpening (recommended for most photos)
+  - 2.0-3.0: Strong sharpening (for very soft images)
+  - 3.1-10: Aggressive sharpening (may introduce artifacts)
+- flat: number from 0 to 1 (optional) - controls sharpening in flat/smooth areas
+- jagged: number from 0 to 1 (optional) - controls sharpening along jagged/irregular edges
+
+Technical note: Uses sharp's sharpen() which implements unsharp mask filtering with gaussian blur radius.
+
+Process:
+1. Ask the user for sigma value if not provided. Explain the ranges.
+2. Call apply-sharpen with files and sigma (and optional flat/jagged)
+3. Files are processed in parallel (up to 5 at a time)
+4. Sharpened images are saved to the "sharpen" folder with suffix "_sharpen{sigma}"
+
+## 14. Blur
+
+When to use:
+- The user wants to soften an image or reduce sharpness
+- The user mentions "blur", "soften", "gaussian blur", "bokeh"
+- The user wants to create a dreamy or ethereal look
+- The user wants to blur backgrounds for privacy
+
+Available parameters:
+- files: array of image file paths
+- sigma: number from 0.3 to 100
+  - 0.3-1.0: Very subtle blur (slight softness)
+  - 1.0-3.0: Light blur (soft focus effect, good for portraits)
+  - 3.0-8.0: Moderate blur (noticeable softness, dreamy look)
+  - 8.0-15.0: Strong blur (heavy softness, background blur)
+  - 15.0+: Extreme blur (very abstract, bokeh-like)
+
+Technical note: Uses sharp's blur() which applies a gaussian blur with the specified sigma radius.
+
+Process:
+1. Ask the user for sigma value if not provided. Explain the ranges.
+2. Call apply-blur with files and sigma
+3. Files are processed in parallel (up to 5 at a time)
+4. Blurred images are saved to the "blur" folder with suffix "_blur{sigma}"
+
+## 15. Edge Detection
+
+When to use:
+- The user wants to detect and highlight edges in an image
+- The user mentions "edge detection", "find edges", "line drawing", "sketch"
+- The user wants to analyze image structure or create artistic line art
+
+Available directions:
+- horizontal: Detects vertical edges (good for vertical lines, pillars, tree trunks)
+- vertical: Detects horizontal edges (good for horizons, shelves)
+- combined: Detects edges in all directions (recommended for general edge detection)
+
+Available sensitivity:
+- 0: Full grayscale edge map (0-255 range, maximum detail) - RECOMMENDED for most cases
+- 10-30: Low sensitivity (only strongest edges, cleaner binary result)
+- 31-60: Medium sensitivity (good balance between detail and noise)
+- 61-100: High sensitivity (more edges detected, may include noise)
+
+Technical note: Uses Sobel kernels with histogram normalization to ensure edges span the full 0-255 range for maximum visibility. When sensitivity > 0, applies threshold to create binary black/white edge map.
+
+Process:
+1. Ask the user for direction if not provided. Explain: "horizontal for vertical edges, vertical for horizontal edges, or combined for all edges."
+2. Ask for sensitivity if not provided. Explain: "0 for full grayscale detail (recommended), or 10-100 for binary edges where higher = more edges detected."
+3. Call detect-edges with files, direction, and sensitivity
+4. Files are processed in parallel (up to 5 at a time)
+5. Edge-detected images are saved to the "edge_detection" folder with suffix "_edges{Direction}"
+
 ## Batch processing and timeout handling
 If a batch is too large and approaches timeout, tools may return partial results with a remaining array.
 When that happens:
@@ -340,6 +420,9 @@ When that happens:
     changeGammaTool,
     recoverHighlightsTool,
     recoverShadowsTool,
+    applySharpenTool,
+    applyBlurTool,
+    detectEdgesTool,
   },
   memory: agentMemory,
 })
