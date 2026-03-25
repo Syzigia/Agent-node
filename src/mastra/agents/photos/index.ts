@@ -10,6 +10,10 @@ import { changeTintTool } from "./tools/adjust-tint"
 import { changeSaturationTool } from "./tools/adjust-saturation"
 import { adjustVignetteTool } from "./tools/adjust-vignette"
 import { adjustGrainTool } from "./tools/adjust-grain"
+import { applyGrayscaleTool } from "./tools/apply-grayscale"
+import { applySepiaTool } from "./tools/apply-sepia"
+import { applyNegativeTool } from "./tools/apply-negative"
+import { applyThresholdTool } from "./tools/apply-threshold"
 import { recoverHighlightsTool } from "./tools/recover-highlights"
 import { recoverShadowsTool } from "./tools/recover-shadows"
 import { getWorkspace } from "../../workspace/context"
@@ -184,7 +188,59 @@ Process:
 3. Files are processed in parallel (up to 5 at a time); a failure in one file does not stop the rest
 4. Grain-adjusted images are saved to the grain_adjustment folder with suffix "_grain{intensity}" (e.g., "_grain35" for intensity 35)
 
-## 9. Shadow recovery
+## 9. Grayscale, Sepia, Negative, and Threshold filters
+
+### Grayscale filter
+When to use:
+- The user wants to convert images to black and white
+- The user mentions "black and white", "grayscale", "B&W", "monochrome"
+
+Process:
+1. Call apply-grayscale with files
+2. Files are processed in parallel (up to 5 at a time)
+3. Grayscale images are saved to the "grayscale" folder
+
+### Sepia filter
+When to use:
+- The user wants a vintage/brownish look
+- The user mentions "sepia", "vintage", "old photo", "brown tone"
+
+Process:
+1. Call apply-sepia with files
+2. Files are processed in parallel (up to 5 at a time)
+3. Sepia images are saved to the "sepia" folder
+
+### Negative filter
+When to use:
+- The user wants to invert all colors
+- The user mentions "negative", "invert", "inverted colors"
+
+Process:
+1. Call apply-negative with files
+2. Files are processed in parallel (up to 5 at a time)
+3. Negative images are saved to the "negative" folder
+
+### Threshold filter
+When to use:
+- The user wants pure black and white based on a cutoff value
+- The user mentions "threshold", "posterize", "high contrast B&W", "binary"
+
+Available parameters:
+- files: array of image file paths
+- threshold: number from 0 to 255 (default 128)
+  - Pixels with value >= threshold become white
+  - Pixels with value < threshold become black
+  - 0-100: More white, less black
+  - 128: Balanced
+  - 150-255: More black, less white
+
+Process:
+1. Ask the user for the threshold value if not provided. Explain: "What threshold value? 0-255, where 128 is balanced. Lower values make more white, higher values make more black."
+2. Call apply-threshold with files and threshold
+3. Files are processed in parallel (up to 5 at a time)
+4. Threshold images are saved to the "threshold" folder
+
+## 10. Shadow recovery
 
 When to use:
 - The user wants to recover detail in dark/shadow areas
@@ -207,7 +263,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the shadow_recovery folder
 
-## 10. Highlight recovery
+## 11. Highlight recovery
 
 When to use:
 - The user wants to fix overexposed/"blown out" bright areas
@@ -230,7 +286,7 @@ Process:
 3. Files are processed in parallel (up to 5 at a time)
 4. Recovered images are saved to the highlight_recovery folder
 
-## 11. Gamma adjustment
+## 12. Gamma adjustment
 
 When to use:
 - The user wants gamma/brightness adjustment for one or more photos
@@ -277,6 +333,10 @@ When that happens:
     changeSaturationTool,
     adjustVignetteTool,
     adjustGrainTool,
+    applyGrayscaleTool,
+    applySepiaTool,
+    applyNegativeTool,
+    applyThresholdTool,
     changeGammaTool,
     recoverHighlightsTool,
     recoverShadowsTool,
