@@ -13,12 +13,16 @@ import {
   normalizedAzureDirectBaseUrl,
 } from "./models/azure-openai"
 import { photosAgent } from "./agents/photos"
+import { creativeAgent } from "./agents/creative"
 import { searchTrending } from "./workflows/trending-research/workflow"
 import {
-  definitionAgent,
-  characteristicsAgent,
-  companiesAgent,
+  projectExamplesAgent,
+  visualInspirationAgent,
+  industryShowcaseAgent,
+  creativeDirectionsAgent,
 } from "./workflows/trending-research/agent"
+import { trandingResearchReportWorkflow } from "./workflows/trending-research-report/workflow"
+import { writerAgent } from "./workflows/trending-research-report/agent"
 
 const directOverrides = normalizedAzureDirectBaseUrl
   ? {
@@ -34,11 +38,14 @@ export const mastra = new Mastra({
     productionAgent,
     coordinatorAgent,
     photosAgent,
-    definitionAgent,
-    characteristicsAgent,
-    companiesAgent,
+    projectExamplesAgent,
+    visualInspirationAgent,
+    industryShowcaseAgent,
+    creativeDirectionsAgent,
+    writerAgent,
+    creativeAgent,
   },
-  workflows: { searchTrending },
+  workflows: { searchTrending, trandingResearchReportWorkflow },
   gateways: {
     azureOpenAI: new MultiResourceAzureGateway({
       defaultResourceName: azureResourceName,

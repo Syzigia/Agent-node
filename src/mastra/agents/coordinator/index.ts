@@ -4,6 +4,7 @@ import { coordinatorMemory } from "../../memory"
 import { productionAgent } from "../production"
 import { gpt53ChatModelId } from "../../models/azure-openai"
 import { photosAgent } from "../photos"
+import { creativeAgent } from "../creative"
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -22,7 +23,17 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 - Detect blurry or out-of-focus photos
 - Filter, classify or analyze photo quality
 - Adjust gamma/brightness of photos (change-gamma tool with options: apple, srgb, broadcast - saves to gamma_correction folder)
-- Any task related to photo quality or enhancement
+- Apply LUT (Look-Up Table) files (.cube) to images for color grading and color correction
+- Any task related to photo quality, enhancement, color grading, or color correction
+
+### creative-agent
+- Research topics, trends, or any subject matter
+- Generate comprehensive reports on any topic
+- When user asks about "tendencias" (trends) on any topic
+- When user says "busca" (search), "investiga" (research), "dime sobre" (tell me about)
+- When user needs information about companies, technologies, concepts, or industries
+- When user requests a report or analysis on any subject
+- ANY research or information gathering request
 
 ## Important rules
 
@@ -39,7 +50,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    - Retry delegation with the resolved exact path when possible.
    - Only ask the user to choose when multiple valid candidates remain.`,
   model: gpt53ChatModelId,
-  agents: { productionAgent, photosAgent },
+  agents: { productionAgent, photosAgent, creativeAgent },
   inputProcessors: [new TokenLimiterProcessor(120_000)],
   defaultOptions: {
     delegation: {
