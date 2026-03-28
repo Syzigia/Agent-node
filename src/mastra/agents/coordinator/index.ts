@@ -4,6 +4,7 @@ import { coordinatorMemory } from "../../memory"
 import { productionAgent } from "../production"
 import { gpt53ChatModelId } from "../../models/azure-openai"
 import { photosAgent } from "../photos"
+import { publishAgent } from "../publish"
 
 export const coordinatorAgent = new Agent({
   id: "coordinator-agent",
@@ -12,7 +13,29 @@ export const coordinatorAgent = new Agent({
 Your only job is to understand the user's intent and delegate it to the correct agent.
 DO NOT invent paths, DO NOT transform filenames — pass exactly what the user says.
 
-## When to delegate to each agent:
+## ROUTING DECISION GUIDE — follow this in order:
+
+1. Does the user want to CREATE or EDIT images using AI? (thumbnails, covers, posters, compositing, adding text to images, visual transformations)
+   → YES: delegate to **publish-agent**. STOP.
+
+2. Does the user want to CORRECT or PROOFREAD text? (spelling, grammar, punctuation)
+   → YES: delegate to **publish-agent**. STOP.
+
+3. Does the user want to DETECT blurry photos or ADJUST gamma/brightness on existing photos?
+   → YES: delegate to **photos-agent**. STOP.
+
+4. Does the user want to LIST/SEARCH workspace files or CONVERT images to WebP?
+   → YES: delegate to **production-agent**. STOP.
+
+## CRITICAL ROUTING RULES
+
+- The word "thumbnail" ALWAYS means publish-agent. No exceptions.
+- Any request involving AI image generation or AI image editing ALWAYS means publish-agent.
+- Compositing images, adding text overlays, creating visual content — ALWAYS publish-agent.
+- photos-agent can ONLY detect blur and adjust gamma/brightness. It CANNOT generate or create images.
+- When in doubt about photos vs publish, choose publish-agent.
+
+## Agent capabilities reference:
 
 ### production-agent
 - Explore workspace files (list, search)
@@ -20,9 +43,12 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
 
 ### photos-agent
 - Detect blurry or out-of-focus photos
-- Filter, classify or analyze photo quality
-- Adjust gamma/brightness of photos (change-gamma tool with options: apple, srgb, broadcast - saves to gamma_correction folder)
-- Any task related to photo quality or enhancement
+- Adjust gamma/brightness of photos (apple, srgb, broadcast — saves to gamma_correction folder)
+
+### publish-agent
+- Text correction (spelling, grammar, punctuation, any language)
+- AI thumbnail generation from base images (16:9 and 9:16 variants, saved to thumbnails/)
+- AI image editing and generation (covers, posters, compositing, visual transformations)
 
 ## Important rules
 
@@ -39,7 +65,7 @@ DO NOT invent paths, DO NOT transform filenames — pass exactly what the user s
    - Retry delegation with the resolved exact path when possible.
    - Only ask the user to choose when multiple valid candidates remain.`,
   model: gpt53ChatModelId,
-  agents: { productionAgent, photosAgent },
+  agents: { productionAgent, photosAgent, publishAgent },
   inputProcessors: [new TokenLimiterProcessor(120_000)],
   defaultOptions: {
     delegation: {
